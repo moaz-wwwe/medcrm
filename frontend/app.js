@@ -18,8 +18,18 @@ function showToast(message, type = 'success') {
     } else {
         icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
     }
+    
+    // Handle array/object errors (like FastAPI validation errors)
+    let displayMessage = message;
+    if (typeof message === 'object') {
+        if (Array.isArray(message) && message.length > 0 && message[0].msg) {
+            displayMessage = message[0].msg; // Extract the first Pydantic error message
+        } else {
+            displayMessage = JSON.stringify(message);
+        }
+    }
 
-    toast.innerHTML = `${icon} <span>${message}</span>`;
+    toast.innerHTML = `${icon} <span>${displayMessage}</span>`;
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -456,7 +466,7 @@ if (aiChatForm) {
                     ...getAuthHeaders(),
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ message: msgText })
+                body: JSON.stringify({ prompt: msgText })
             });
             
             loadingDiv.remove();
