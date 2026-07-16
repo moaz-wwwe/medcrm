@@ -114,14 +114,36 @@
 
     <!-- Bottom Navigation -->
     <div class="bottom-nav">
-        <button class="nav-item" onclick="location.href='dashboard.html'">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-            Leads
+        <button class="nav-item" id="navManagerChat">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            AI Manager
         </button>
         <button class="nav-item active" onclick="location.href='admin_dashboard.html'">
             <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             Admin
         </button>
+    </div>
+
+    <!-- AI Manager Modal -->
+    <div id="aiManagerModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 style="display:flex; align-items:center; gap:8px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2c0-1.1.9-2 2-2z"/><path d="M19 14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14z"/><path d="M12 14v-4"/></svg>
+                    AI Manager
+                </h3>
+                <button class="close-btn" id="closeAiModal">&times;</button>
+            </div>
+            <div id="aiChatWindow" class="chat-window">
+                <div class="chat-msg ai">Hello! I am your AI Sales Director. How can I assist you with team analytics today?</div>
+            </div>
+            <form id="aiChatForm" style="display:flex; gap:10px;">
+                <input type="text" id="aiMessageInput" placeholder="Ask about top reps or team stats..." required style="flex:1;">
+                <button type="submit" class="btn btn-primary" id="aiSendBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </form>
+        </div>
     </div>
 
     <div id="toast-container" class="toast-container"></div>
