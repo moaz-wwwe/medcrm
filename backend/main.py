@@ -211,22 +211,38 @@ async def bulk_upload_leads(
     current_user: models.User = Depends(auth.require_admin),
 ):
     """
-    Reads a CSV file, creates Lead records, and distributes them
+    Reads a CSV or Excel file, creates Lead records, and distributes them
     equally among all available sales reps (Round-Robin).
-    CSV Format expected: name, phone, facility_type, notes
+    Format expected: name, phone, facility_type, notes
     """
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+        raise HTTPException(status_code=400, detail="Only CSV and Excel (.xlsx) files are allowed.")
 
     try:
         content = await file.read()
-        decoded_content = content.decode('utf-8')
-        reader = csv.DictReader(io.StringIO(decoded_content))
         
+        data_rows = []
+        if file.filename.endswith('.csv'):
+            decoded_content = content.decode('utf-8')
+            reader = csv.DictReader(io.StringIO(decoded_content))
+            data_rows = list(reader)
+        elif file.filename.endswith('.xlsx'):
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+            sheet = wb.active
+            headers = [str(cell.value).strip() if cell.value else "" for cell in sheet[1]]
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                if any(row):  # Skip completely empty rows
+                    data_rows.append(dict(zip(headers, row)))
+        
+        if not data_rows:
+            raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+
         # Ensure correct columns exist
         expected_cols = {'name', 'phone', 'facility_type'}
-        if not expected_cols.issubset(set(reader.fieldnames or [])):
-            raise HTTPException(status_code=400, detail="CSV must contain columns: name, phone, facility_type")
+        actual_cols = set(data_rows[0].keys())
+        if not expected_cols.issubset(actual_cols):
+            raise HTTPException(status_code=400, detail=f"File must contain columns: name, phone, facility_type. Found: {actual_cols}")
 
         # Get all sales reps to distribute
         reps = db.query(models.User).filter(models.User.role == models.UserRole.SALES_REP).all()
@@ -236,10 +252,10 @@ async def bulk_upload_leads(
         leads_created = 0
         rep_count = len(reps)
 
-        for i, row in enumerate(reader):
+        for i, row in enumerate(data_rows):
             # Basic validation
-            name = row.get('name', '').strip()
-            phone = row.get('phone', '').strip()
+            name = str(row.get('name', '') or '').strip()
+            phone = str(row.get('phone', '') or '').strip()
             if not name or not phone:
                 continue # Skip invalid rows
             
@@ -249,8 +265,8 @@ async def bulk_upload_leads(
             new_lead = models.Lead(
                 name=name,
                 phone=phone,
-                facility_type=row.get('facility_type', '').strip(),
-                notes=row.get('notes', '').strip(),
+                facility_type=str(row.get('facility_type', '') or '').strip(),
+                notes=str(row.get('notes', '') or '').strip(),
                 assigned_to=assigned_rep.id,
             )
             db.add(new_lead)
