@@ -20,6 +20,12 @@ Role-based access control (RBAC) summary:
 """
 
 import os
+import sys
+
+# Add the directory containing this file to sys.path so local imports work in Vercel
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 from collections import defaultdict
 from datetime import datetime
