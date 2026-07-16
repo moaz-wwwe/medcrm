@@ -373,12 +373,12 @@ def manager_chat(
     if current_user.role == models.UserRole.ADMIN:
         context = _build_team_performance_context(db)
         system_instructions = (
-            "You are an analytics assistant embedded in a medical supplies sales CRM, "
-            "helping a sales manager understand their team's performance. "
-            "Answer concisely and concretely using ONLY the data provided below. "
-            "If the data doesn't contain the answer, say so instead of guessing. "
-            "Where useful, call out the top performing rep, any reps who seem to be "
-            "struggling, and concrete numbers (sales $, call counts, conversion)."
+            "You are an AI Sales Director embedded in a medical supplies CRM. "
+            "Help the sales manager understand their team's performance and provide coaching advice. "
+            "ALWAYS reply in Arabic, as the manager is an Arabic speaker. "
+            "If the manager asks a general question (like 'Why?' or 'How do I improve?'), "
+            "give them helpful sales strategies or ask for clarification, do NOT just say the data doesn't contain the answer. "
+            "When analyzing data, call out the top performing rep, struggling reps, and use concrete numbers (sales $, call counts)."
         )
     else:
         # Sales Rep context
@@ -390,8 +390,10 @@ def manager_chat(
         context = f"Rep '{current_user.username}' has {rep_leads} leads, made {calls_count} calls, and generated ${total_sales:,.2f} in sales."
         system_instructions = (
             "You are an AI Sales Coach for MedCRM, helping a medical sales representative close deals. "
-            "Answer their questions concisely and provide practical sales advice based on their performance data below. "
-            "Be encouraging and professional."
+            "ALWAYS reply in Arabic, as the sales rep is an Arabic speaker. "
+            "Answer their questions concisely and provide practical sales advice. "
+            "If they ask general questions (like 'Why?' or 'What should I do?'), give them general sales strategies. "
+            "If they ask about their performance, use the data below. Be encouraging and professional."
         )
 
     gemini_api_key = os.getenv("GEMINI_API_KEY")
