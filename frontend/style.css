@@ -1,0 +1,364 @@
+/**
+ * style.css
+ * ---------
+ * Clean, professional styling for the Medical Supplies CRM.
+ * Palette is a clinical teal/navy — trustworthy and calm, distinct from a
+ * generic Bootstrap-blue admin theme.
+ */
+
+:root {
+  --brand-navy: #0f2f3f;
+  --brand-teal: #0e7c86;
+  --brand-teal-dark: #0a5a62;
+  --brand-teal-light: #e6f4f4;
+  --brand-amber: #d98a3d;
+  --brand-bg: #f6f8f8;
+  --text-dark: #16262b;
+  --text-muted: #5b6b70;
+  --border-soft: #e1e8e8;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--brand-bg);
+  color: var(--text-dark);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Navbar                                                                   */
+/* ---------------------------------------------------------------------- */
+
+.app-navbar {
+  background: linear-gradient(90deg, var(--brand-navy), var(--brand-teal-dark));
+  box-shadow: 0 2px 8px rgba(15, 47, 63, 0.15);
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--brand-amber);
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.role-badge {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.role-badge-admin {
+  background-color: var(--brand-amber);
+  color: #fff;
+}
+.role-badge-rep {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Auth page                                                                */
+/* ---------------------------------------------------------------------- */
+
+.auth-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(14, 124, 134, 0.12), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(217, 138, 61, 0.10), transparent 45%),
+    var(--brand-navy);
+  padding: 24px;
+}
+
+.auth-wrap {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 36px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.auth-brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--brand-teal);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-brand-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--brand-navy);
+  line-height: 1.1;
+}
+
+.auth-brand-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.auth-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--brand-navy);
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.auth-demo {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-soft);
+  font-size: 0.82rem;
+}
+
+.auth-demo-title {
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.auth-demo-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  color: var(--text-dark);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buttons                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.btn-brand {
+  background-color: var(--brand-teal);
+  border-color: var(--brand-teal);
+  color: #fff;
+  font-weight: 600;
+}
+.btn-brand:hover, .btn-brand:focus {
+  background-color: var(--brand-teal-dark);
+  border-color: var(--brand-teal-dark);
+  color: #fff;
+}
+
+.btn-whatsapp {
+  background-color: #25d366;
+  border-color: #25d366;
+  color: #fff;
+  font-weight: 600;
+}
+.btn-whatsapp:hover {
+  background-color: #1ebc59;
+  color: #fff;
+}
+
+.btn-call {
+  background-color: var(--brand-navy);
+  border-color: var(--brand-navy);
+  color: #fff;
+  font-weight: 600;
+}
+.btn-call:hover {
+  background-color: #0a2029;
+  color: #fff;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Panels / cards                                                          */
+/* ---------------------------------------------------------------------- */
+
+.panel {
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 22px;
+  height: 100%;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--brand-navy);
+}
+
+.panel-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.kpi-card {
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--brand-teal);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--brand-navy);
+  margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Lead list (rep dashboard)                                                */
+/* ---------------------------------------------------------------------- */
+
+.lead-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.lead-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--brand-bg);
+}
+
+.lead-card-name {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.lead-card-meta {
+  margin-top: 2px;
+}
+
+.lead-card-notes {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.lead-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Chatbot (admin dashboard)                                                */
+/* ---------------------------------------------------------------------- */
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-window {
+  flex: 1;
+  min-height: 380px;
+  max-height: 480px;
+  overflow-y: auto;
+  background: var(--brand-bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-msg {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 90%;
+  white-space: pre-wrap;
+}
+
+.chat-msg-bot {
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  color: var(--text-dark);
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+
+.chat-msg-user {
+  background: var(--brand-teal);
+  color: #fff;
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-msg-typing {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tables                                                                   */
+/* ---------------------------------------------------------------------- */
+
+.table thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border-soft);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--brand-teal-dark);
+  font-weight: 600;
+  border-bottom: 2px solid var(--brand-teal);
+}

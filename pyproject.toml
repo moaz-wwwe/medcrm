@@ -1,0 +1,2 @@
+[tool.vercel]
+entrypoint = "medcrm.api.index:app"

@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/auth/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/leads/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/call-logs/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/manager-chat",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    }
+  ]
+}
