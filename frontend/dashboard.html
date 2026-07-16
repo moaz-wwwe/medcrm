@@ -1,138 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MedCRM | My Leads</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MedCRM - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<nav class="navbar navbar-expand navbar-dark app-navbar">
-  <div class="container-fluid">
-    <span class="navbar-brand">
-      <span class="brand-mark">+</span> MedCRM
-      <span class="badge role-badge role-badge-rep ms-2">Sales Rep</span>
-    </span>
-    <div class="d-flex align-items-center gap-3">
-      <span class="navbar-text" id="welcome-text"></span>
-      <button class="btn btn-outline-light btn-sm" id="logout-btn">Log out</button>
-    </div>
-  </div>
-</nav>
-
-<main class="container-fluid px-4 py-4">
-
-  <div class="row g-4">
-    <!-- Add lead form -->
-    <div class="col-lg-4">
-      <div class="panel">
-        <h2 class="panel-title">Add New Lead</h2>
-        <p class="panel-subtitle">Leads you create are automatically assigned to you.</p>
-
-        <form id="lead-form">
-          <div class="mb-3">
-            <label class="form-label">Facility / Contact Name</label>
-            <input type="text" class="form-control" id="lead-name" required placeholder="e.g. Al-Noor Medical Center">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Phone Number</label>
-            <input type="text" class="form-control" id="lead-phone" required placeholder="e.g. +201234567890">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Facility Type</label>
-            <select class="form-select" id="lead-facility-type" required>
-              <option value="" disabled selected>Select type…</option>
-              <option>Hospital</option>
-              <option>Clinic</option>
-              <option>Pharmacy</option>
-              <option>Diagnostic Lab</option>
-              <option>Nursing Home</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Notes (optional)</label>
-            <textarea class="form-control" id="lead-notes" rows="2" placeholder="Any context about this lead…"></textarea>
-          </div>
-          <button type="submit" class="btn btn-brand w-100">Add Lead</button>
-        </form>
-        <div id="lead-form-alert" class="alert alert-danger mt-3 py-2 d-none"></div>
-      </div>
+    <div class="header glass-panel">
+        <div>
+            <h2 style="margin:0; font-size:1.25rem;">My Leads</h2>
+            <p style="margin:0; font-size:0.8rem;" id="welcomeMessage">Welcome back</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="logoutBtn" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.85rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </button>
+        </div>
     </div>
 
-    <!-- Lead list -->
-    <div class="col-lg-8">
-      <div class="panel">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div>
-            <h2 class="panel-title mb-0">My Leads</h2>
-            <p class="panel-subtitle mb-0">Only leads assigned to you appear here.</p>
-          </div>
-          <span class="badge bg-light text-dark border" id="lead-count-badge">0 leads</span>
+    <div class="container">
+        <div id="leadsList" class="leads-grid">
+            <!-- Skeleton loaders before data arrives -->
+            <div class="lead-card glass-panel">
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text short"></div>
+                <div class="skeleton skeleton-text"></div>
+            </div>
         </div>
-
-        <div id="leads-container" class="lead-list mt-3">
-          <div class="text-muted small">Loading leads…</div>
-        </div>
-      </div>
     </div>
-  </div>
 
-</main>
+    <!-- Floating Action Button for Adding Leads -->
+    <button class="fab" id="addLeadFab" title="Add New Lead">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
 
-<!-- Log Call Modal -->
-<div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Log Call</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form id="call-log-form">
-        <div class="modal-body">
-          <input type="hidden" id="call-lead-id">
-          <p class="mb-3">Logging a call for: <strong id="call-lead-name"></strong></p>
-
-          <div class="mb-3">
-            <label class="form-label">Call Result</label>
-            <select class="form-select" id="call-result" required>
-              <option value="" disabled selected>Select outcome…</option>
-              <option>Sold</option>
-              <option>Interested</option>
-              <option>Follow Up Needed</option>
-              <option>No Answer</option>
-              <option>Rejected</option>
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Sale Amount ($)</label>
-            <input type="number" min="0" step="0.01" class="form-control" id="call-amount" value="0">
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Notes (optional)</label>
-            <textarea class="form-control" id="call-notes" rows="2"></textarea>
-          </div>
-
-          <div id="call-form-alert" class="alert alert-danger py-2 d-none"></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-brand">Save Call Log</button>
-        </div>
-      </form>
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="location.href='dashboard.html'">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            Leads
+        </button>
+        <button class="nav-item" id="navManagerChat">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            AI Manager
+        </button>
+        <button class="nav-item admin-only" id="navAdmin">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            Admin
+        </button>
     </div>
-  </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="app.js"></script>
-<script>
-  MedCRM.requireRole('sales_rep', 'index.html');
-  MedCRM.initRepDashboard();
-</script>
+    <!-- Add Lead Modal -->
+    <div id="addLeadModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Lead</h3>
+                <button class="close-btn" id="closeLeadModal">&times;</button>
+            </div>
+            <form id="addLeadForm">
+                <div class="form-group">
+                    <label>Client Name</label>
+                    <input type="text" id="leadName" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="leadPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>Facility Type</label>
+                    <input type="text" id="leadFacility" placeholder="e.g. Hospital, Clinic" required>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="leadNotes" rows="3"></textarea>
+                </div>
+                <!-- Admins can assign leads -->
+                <div class="form-group admin-only" id="assignGroup">
+                    <label>Assign To (Rep ID)</label>
+                    <input type="number" id="leadAssignedTo" placeholder="Leave empty to assign to self">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Lead</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Call Log Modal -->
+    <div id="addLogModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Log Activity</h3>
+                <button class="close-btn" id="closeLogModal">&times;</button>
+            </div>
+            <form id="addLogForm">
+                <input type="hidden" id="logLeadId">
+                <div class="form-group">
+                    <label>Result / Status</label>
+                    <input type="text" id="logResult" placeholder="e.g. Interested, Callback, Not Interested" required>
+                </div>
+                <div class="form-group">
+                    <label>Sales Amount (if any)</label>
+                    <input type="number" id="logSales" value="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="logNotes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Activity</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI Manager Modal -->
+    <div id="aiManagerModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 style="display:flex; align-items:center; gap:8px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2c0-1.1.9-2 2-2z"/><path d="M19 14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14z"/><path d="M12 14v-4"/></svg>
+                    AI Manager
+                </h3>
+                <button class="close-btn" id="closeAiModal">&times;</button>
+            </div>
+            <div id="aiChatWindow" class="chat-window">
+                <div class="chat-msg ai">Hello! I am your AI Manager. How can I help you close a deal today?</div>
+            </div>
+            <form id="aiChatForm" style="display:flex; gap:10px;">
+                <input type="text" id="aiMessageInput" placeholder="Ask for advice on a deal..." required style="flex:1;">
+                <button type="submit" class="btn btn-primary" id="aiSendBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+    <script src="app.js"></script>
 </body>
 </html>
