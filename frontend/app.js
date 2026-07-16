@@ -80,11 +80,9 @@ function checkAuthAndRole() {
         window.location.href = 'index.html';
         return;
     }
-
-    if (token && (currentPage === 'index.html' || currentPage === '')) {
-        window.location.href = role === 'admin' ? 'admin_dashboard.html' : 'dashboard.html';
-        return;
-    }
+    
+    // We intentionally removed the auto-redirect from index.html if token exists
+    // based on user request, so they can access the login page manually via the link.
 
     // Show/Hide admin specific elements
     if (role === 'admin') {
@@ -209,7 +207,7 @@ async function fetchLeads() {
                             <span>Rep: ${lead.assigned_rep_username || 'N/A'}</span>
                         </div>
                     </div>
-                    <button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">Log Activity</button>
+                    <button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">Process Lead</button>
                 </div>
                 <p style="font-size:0.875rem; margin-bottom:0;"><strong>Phone:</strong> ${lead.phone}</p>
                 <p style="font-size:0.875rem;"><strong>Notes:</strong> ${lead.notes || 'No notes'}</p>
@@ -302,8 +300,17 @@ if (addLogForm) {
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                showToast("Activity logged successfully!");
+                showToast("Lead processed successfully!");
                 closeModal('addLogModal');
+                
+                // Refresh leads queue to remove the processed lead and pull a new one
+                fetchLeads();
+                
+                // Also refresh recent activity if on dashboard
+                if (typeof fetchRecentActivity === 'function') {
+                    fetchRecentActivity();
+                }
+                
                 addLogForm.reset();
                 if(document.getElementById('adminLogsTable')) fetchAdminData();
             } else {
