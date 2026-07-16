@@ -21,6 +21,9 @@ Role-based access control (RBAC) summary:
 
 import os
 import sys
+import json
+import urllib.request
+import urllib.parse
 
 # Add the directory containing this file to sys.path so local imports work in Vercel
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -46,6 +49,19 @@ load_dotenv()
 
 # Create tables on startup (fine for SQLite / dev; use Alembic migrations in production).
 Base.metadata.create_all(bind=engine)
+
+def send_telegram_notification(message: str):
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    if not bot_token or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    data = {"chat_id": chat_id, "text": message, "parse_mode": "HTML"}
+    req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers={"Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(req, timeout=5)
+    except Exception as e:
+        print(f"Telegram notification failed: {e}")
 
 app = FastAPI(title="Medical Supplies CRM API", version="1.0.0")
 
@@ -170,6 +186,19 @@ def create_lead(
     db.add(lead)
     db.commit()
     db.refresh(lead)
+    
+    # Send Telegram Notification
+    rep_name = current_user.full_name or current_user.username
+    msg = (
+        f"🚨 <b>New Lead Created!</b>\n\n"
+        f"👤 <b>Name:</b> {lead.name}\n"
+        f"📱 <b>Phone:</b> {lead.phone}\n"
+        f"🏥 <b>Facility:</b> {lead.facility_type}\n"
+        f"📝 <b>Notes:</b> {lead.notes or 'N/A'}\n"
+        f"👤 <b>Created By:</b> {rep_name}"
+    )
+    send_telegram_notification(msg)
+    
     return _lead_to_out(lead)
 
 
@@ -243,6 +272,19 @@ def create_call_log(
     db.add(log)
     db.commit()
     db.refresh(log)
+    
+    # Send Telegram Notification
+    rep_name = current_user.full_name or current_user.username
+    msg = (
+        f"📞 <b>New Call Log Added!</b>\n\n"
+        f"👤 <b>Lead:</b> {lead.name}\n"
+        f"📊 <b>Result:</b> {log.call_result}\n"
+        f"💰 <b>Sales Amount:</b> ${log.sales_amount}\n"
+        f"📝 <b>Notes:</b> {log.notes or 'N/A'}\n"
+        f"👤 <b>Logged By:</b> {rep_name}"
+    )
+    send_telegram_notification(msg)
+    
     return _calllog_to_out(log)
 
 
