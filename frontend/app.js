@@ -448,6 +448,7 @@ if (aiChatForm) {
         // Add user msg
         const userDiv = document.createElement("div");
         userDiv.className = "chat-msg user";
+        userDiv.setAttribute("dir", "auto");
         userDiv.innerText = msgText;
         chatWindow.appendChild(userDiv);
         input.value = "";
@@ -475,6 +476,7 @@ if (aiChatForm) {
                 const data = await res.json();
                 const aiDiv = document.createElement("div");
                 aiDiv.className = "chat-msg ai";
+                aiDiv.setAttribute("dir", "auto");
                 // Convert markdown simple formatting (e.g., bold) to html for better display
                 let htmlText = data.reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                 htmlText = htmlText.replace(/\n/g, '<br>');
