@@ -360,7 +360,7 @@ def _build_team_performance_context(db: Session) -> str:
 def manager_chat(
     payload: schemas.ManagerChatRequest,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.require_admin),  # admin-only endpoint
+    current_user: models.User = Depends(auth.get_current_user),
 ):
     """
     Lets the manager ask natural-language questions about team performance.
@@ -370,7 +370,29 @@ def manager_chat(
       3. Send {context + admin's question} to Gemini.
       4. Return the model's natural-language insight to the frontend.
     """
-    context = _build_team_performance_context(db)
+    if current_user.role == models.UserRole.ADMIN:
+        context = _build_team_performance_context(db)
+        system_instructions = (
+            "You are an analytics assistant embedded in a medical supplies sales CRM, "
+            "helping a sales manager understand their team's performance. "
+            "Answer concisely and concretely using ONLY the data provided below. "
+            "If the data doesn't contain the answer, say so instead of guessing. "
+            "Where useful, call out the top performing rep, any reps who seem to be "
+            "struggling, and concrete numbers (sales $, call counts, conversion)."
+        )
+    else:
+        # Sales Rep context
+        rep_logs = db.query(models.CallLog).join(models.Lead).filter(models.Lead.assigned_to == current_user.id).all()
+        rep_leads = db.query(models.Lead).filter(models.Lead.assigned_to == current_user.id).count()
+        total_sales = sum((log.sales_amount or 0.0) for log in rep_logs)
+        calls_count = len(rep_logs)
+        
+        context = f"Rep '{current_user.username}' has {rep_leads} leads, made {calls_count} calls, and generated ${total_sales:,.2f} in sales."
+        system_instructions = (
+            "You are an AI Sales Coach for MedCRM, helping a medical sales representative close deals. "
+            "Answer their questions concisely and provide practical sales advice based on their performance data below. "
+            "Be encouraging and professional."
+        )
 
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     if not gemini_api_key or gemini_api_key == "your-gemini-api-key-here":
@@ -386,19 +408,10 @@ def manager_chat(
         model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         model = genai.GenerativeModel(model_name)
 
-        system_instructions = (
-            "You are an analytics assistant embedded in a medical supplies sales CRM, "
-            "helping a sales manager understand their team's performance. "
-            "Answer concisely and concretely using ONLY the data provided below. "
-            "If the data doesn't contain the answer, say so instead of guessing. "
-            "Where useful, call out the top performing rep, any reps who seem to be "
-            "struggling, and concrete numbers (sales $, call counts, conversion)."
-        )
-
         full_prompt = (
             f"{system_instructions}\n\n"
-            f"=== TEAM PERFORMANCE DATA ===\n{context}\n\n"
-            f"=== MANAGER'S QUESTION ===\n{payload.prompt}"
+            f"=== PERFORMANCE DATA ===\n{context}\n\n"
+            f"=== USER'S QUESTION ===\n{payload.prompt}"
         )
 
         # Explicit timeout so a slow/unreachable Gemini API can never hang this
