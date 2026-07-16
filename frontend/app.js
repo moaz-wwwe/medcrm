@@ -471,7 +471,8 @@ if (aiChatForm) {
                 aiDiv.innerHTML = htmlText;
                 chatWindow.appendChild(aiDiv);
             } else {
-                showToast("AI is currently unavailable", "error");
+                const data = await res.json();
+                showToast(data.detail || "AI is currently unavailable", "error");
             }
         } catch (error) {
             loadingDiv.remove();
