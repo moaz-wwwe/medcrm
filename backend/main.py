@@ -24,6 +24,8 @@ import sys
 import json
 import urllib.request
 import urllib.parse
+import csv
+import io
 
 # Add the directory containing this file to sys.path so local imports work in Vercel
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +37,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -200,6 +202,76 @@ def create_lead(
     send_telegram_notification(msg)
     
     return _lead_to_out(lead)
+
+
+@app.post("/leads/bulk-upload")
+async def bulk_upload_leads(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin),
+):
+    """
+    Reads a CSV file, creates Lead records, and distributes them
+    equally among all available sales reps (Round-Robin).
+    CSV Format expected: name, phone, facility_type, notes
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
+
+    try:
+        content = await file.read()
+        decoded_content = content.decode('utf-8')
+        reader = csv.DictReader(io.StringIO(decoded_content))
+        
+        # Ensure correct columns exist
+        expected_cols = {'name', 'phone', 'facility_type'}
+        if not expected_cols.issubset(set(reader.fieldnames or [])):
+            raise HTTPException(status_code=400, detail="CSV must contain columns: name, phone, facility_type")
+
+        # Get all sales reps to distribute
+        reps = db.query(models.User).filter(models.User.role == models.UserRole.SALES_REP).all()
+        if not reps:
+            raise HTTPException(status_code=400, detail="No sales reps available in the system to assign leads to.")
+
+        leads_created = 0
+        rep_count = len(reps)
+
+        for i, row in enumerate(reader):
+            # Basic validation
+            name = row.get('name', '').strip()
+            phone = row.get('phone', '').strip()
+            if not name or not phone:
+                continue # Skip invalid rows
+            
+            # Round-robin assignment
+            assigned_rep = reps[i % rep_count]
+            
+            new_lead = models.Lead(
+                name=name,
+                phone=phone,
+                facility_type=row.get('facility_type', '').strip(),
+                notes=row.get('notes', '').strip(),
+                assigned_to=assigned_rep.id,
+            )
+            db.add(new_lead)
+            leads_created += 1
+            
+        db.commit()
+
+        # Send Telegram Notification
+        msg = (
+            f"📥 <b>تم رفع دفعة عملاء جديدة!</b>\n\n"
+            f"👤 قام المدير: {current_user.username} برفع شيت عملاء.\n"
+            f"✅ إجمالي العملاء: {leads_created}\n"
+            f"🔄 تم توزيعهم بالتساوي على {rep_count} مناديب."
+        )
+        send_telegram_notification(msg)
+
+        return {"status": "success", "message": f"{leads_created} leads uploaded and distributed among {rep_count} reps."}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to process CSV: {str(e)}")
 
 
 @app.get("/leads/", response_model=List[schemas.LeadOut])

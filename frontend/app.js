@@ -427,6 +427,46 @@ if (triggerReportBtn) {
     });
 }
 
+// Bulk Upload CSV
+const uploadCsvBtn = document.getElementById("uploadCsvBtn");
+const csvFileInput = document.getElementById("csvFileInput");
+if (uploadCsvBtn && csvFileInput) {
+    uploadCsvBtn.addEventListener("click", () => csvFileInput.click());
+
+    csvFileInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const originalText = uploadCsvBtn.innerHTML;
+        uploadCsvBtn.innerHTML = `<span class="skeleton skeleton-avatar" style="width:16px;height:16px;margin-right:4px;display:inline-block;"></span> Uploading...`;
+        uploadCsvBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch(`${API_BASE}/leads/bulk-upload`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message, "success");
+                fetchAdminData(); // Refresh the tables
+            } else {
+                showToast(data.detail || "Error uploading CSV", "error");
+            }
+        } catch (error) {
+            showToast("Network error during upload", "error");
+        } finally {
+            uploadCsvBtn.innerHTML = originalText;
+            uploadCsvBtn.disabled = false;
+            csvFileInput.value = ""; // Reset input
+        }
+    });
+}
+
 // -------------------------------------------------------------
 // AI Manager Chat
 // -------------------------------------------------------------
