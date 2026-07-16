@@ -412,6 +412,47 @@ def manager_chat(
     return schemas.ManagerChatResponse(reply=reply_text, context_used=context)
 
 
+@app.get("/api/cron/daily-report")
+def send_daily_report(
+    db: Session = Depends(get_db),
+    token: Optional[str] = None
+):
+    # Ensure this is only triggered by authorized cron or admin
+    expected_token = os.getenv("CRON_SECRET", "default_secret")
+    if token != expected_token:
+        raise HTTPException(status_code=401, detail="Unauthorized cron trigger")
+        
+    context = _build_team_performance_context(db)
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_api_key:
+        raise HTTPException(status_code=500, detail="Missing Gemini key")
+        
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=gemini_api_key)
+        model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
+        
+        prompt = (
+            "You are the AI Sales Director for MedCRM. "
+            "Write a highly professional, concise daily performance report IN ARABIC based on the data below. "
+            "Rank the sales reps from best to worst based on their sales and calls. "
+            "Use emojis for visual appeal, and give one brief sentence of advice to the manager. "
+            f"\n\n=== DATA ===\n{context}"
+        )
+        
+        response = model.generate_content(prompt, request_options={"timeout": 30})
+        report_text = (response.text or "").strip()
+        
+        # Add a header
+        final_msg = f"📊 <b>التقرير اليومي لأداء الفريق</b>\n\n{report_text}"
+        send_telegram_notification(final_msg)
+        
+        return {"status": "success", "message": "Report sent to Telegram"}
+        
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Error generating report: {exc}")
+
+
 @app.get("/")
 def root():
     return {"status": "ok", "service": "Medical Supplies CRM API"}

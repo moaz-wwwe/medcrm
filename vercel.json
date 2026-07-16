@@ -43,5 +43,11 @@
       "src": "/(.*)",
       "dest": "/frontend/$1"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-report?token=default_secret",
+      "schedule": "0 15 * * *"
+    }
   ]
 }

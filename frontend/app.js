@@ -392,6 +392,31 @@ if (createUserForm) {
     });
 }
 
+// Trigger Daily Report manually
+const triggerReportBtn = document.getElementById("triggerReportBtn");
+if (triggerReportBtn) {
+    triggerReportBtn.addEventListener("click", async () => {
+        const originalText = triggerReportBtn.innerHTML;
+        triggerReportBtn.innerHTML = `<span class="skeleton skeleton-avatar" style="width:16px;height:16px;margin-right:4px;display:inline-block;"></span> Sending...`;
+        triggerReportBtn.disabled = true;
+
+        try {
+            // We use default_secret here to trigger it manually, matching our vercel.json
+            const res = await fetch(`${API_BASE}/api/cron/daily-report?token=default_secret`);
+            if (res.ok) {
+                showToast("Report generated and sent to Telegram!", "success");
+            } else {
+                showToast("Failed to trigger report.", "error");
+            }
+        } catch (error) {
+            showToast("Network error triggering report", "error");
+        } finally {
+            triggerReportBtn.innerHTML = originalText;
+            triggerReportBtn.disabled = false;
+        }
+    });
+}
+
 // -------------------------------------------------------------
 // AI Manager Chat
 // -------------------------------------------------------------
