@@ -238,11 +238,15 @@ async def bulk_upload_leads(
         if not data_rows:
             raise HTTPException(status_code=400, detail="The uploaded file is empty.")
 
-        # Ensure correct columns exist
-        expected_cols = {'name', 'phone', 'facility_type'}
-        actual_cols = set(data_rows[0].keys())
-        if not expected_cols.issubset(actual_cols):
-            raise HTTPException(status_code=400, detail=f"File must contain columns: name, phone, facility_type. Found: {actual_cols}")
+        # Normalize headers (remove BOM, lowercase, strip)
+        normalized_rows = []
+        for row in data_rows:
+            norm_row = {}
+            for k, v in row.items():
+                if k is None: continue
+                clean_k = str(k).encode('utf-8').decode('utf-8-sig').strip().lower()
+                norm_row[clean_k] = v
+            normalized_rows.append(norm_row)
 
         # Get all sales reps to distribute
         reps = db.query(models.User).filter(models.User.role == models.UserRole.SALES_REP).all()
@@ -252,21 +256,28 @@ async def bulk_upload_leads(
         leads_created = 0
         rep_count = len(reps)
 
-        for i, row in enumerate(data_rows):
-            # Basic validation
-            name = str(row.get('name', '') or '').strip()
-            phone = str(row.get('phone', '') or '').strip()
+        for i, row in enumerate(normalized_rows):
+            # Dynamic mapping for scraped data
+            name = str(row.get('name') or row.get('business name') or '').strip()
+            phone = str(row.get('phone') or row.get('mobile') or '').strip()
+            facility_type = str(row.get('facility_type') or row.get('category') or '').strip()
+            
+            # Combine address/city into notes if standard notes are empty
+            city = str(row.get('city') or '')
+            address = str(row.get('address') or '')
+            notes = str(row.get('notes') or f"{city} - {address}").strip(' -')
+            
             if not name or not phone:
                 continue # Skip invalid rows
             
             # Round-robin assignment
-            assigned_rep = reps[i % rep_count]
+            assigned_rep = reps[leads_created % rep_count]
             
             new_lead = models.Lead(
                 name=name,
                 phone=phone,
-                facility_type=str(row.get('facility_type', '') or '').strip(),
-                notes=str(row.get('notes', '') or '').strip(),
+                facility_type=facility_type,
+                notes=notes,
                 assigned_to=assigned_rep.id,
             )
             db.add(new_lead)
