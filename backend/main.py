@@ -223,7 +223,7 @@ async def bulk_upload_leads(
         
         data_rows = []
         if file.filename.endswith('.csv'):
-            decoded_content = content.decode('utf-8')
+            decoded_content = content.decode('utf-8-sig')
             reader = csv.DictReader(io.StringIO(decoded_content))
             data_rows = list(reader)
         elif file.filename.endswith('.xlsx'):
@@ -244,7 +244,7 @@ async def bulk_upload_leads(
             norm_row = {}
             for k, v in row.items():
                 if k is None: continue
-                clean_k = str(k).encode('utf-8').decode('utf-8-sig').strip().lower()
+                clean_k = str(k).replace('\ufeff', '').strip().lower()
                 norm_row[clean_k] = v
             normalized_rows.append(norm_row)
 
