@@ -257,18 +257,28 @@ async def bulk_upload_leads(
         rep_count = len(reps)
 
         for i, row in enumerate(normalized_rows):
-            # Dynamic mapping for scraped data
-            name = str(row.get('name') or row.get('business name') or '').strip()
-            phone = str(row.get('phone') or row.get('mobile') or '').strip()
-            facility_type = str(row.get('facility_type') or row.get('category') or '').strip()
+            name = ""
+            phone = ""
+            facility_type = ""
+            notes_parts = []
             
-            # Combine address/city into notes if standard notes are empty
-            city = str(row.get('city') or '')
-            address = str(row.get('address') or '')
-            notes = str(row.get('notes') or f"{city} - {address}").strip(' -')
+            for k, v in row.items():
+                v_str = str(v).strip()
+                if not v_str: continue
+                
+                if 'name' in k or 'اسم' in k:
+                    name = v_str
+                elif 'phone' in k or 'mobile' in k or 'رقم' in k or 'موبايل' in k:
+                    phone = v_str
+                elif 'category' in k or 'type' in k or 'نوع' in k or 'تصنيف' in k:
+                    facility_type = v_str
+                else:
+                    notes_parts.append(f"{k}: {v_str}")
             
             if not name or not phone:
                 continue # Skip invalid rows
+                
+            notes = " | ".join(notes_parts)
             
             # Round-robin assignment
             assigned_rep = reps[leads_created % rep_count]
@@ -306,14 +316,22 @@ def list_leads(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    query = db.query(models.Lead)
-
     # --- Core RBAC enforcement ---
     if current_user.role == models.UserRole.SALES_REP:
-        query = query.filter(models.Lead.assigned_to == current_user.id)
-    # admin: no filter applied -> sees 100% of team's leads
+        # Queue System: Only show 10 leads that have NOT been processed (no call logs)
+        leads = (
+            db.query(models.Lead)
+            .outerjoin(models.CallLog)
+            .filter(models.Lead.assigned_to == current_user.id)
+            .filter(models.CallLog.id == None)
+            .order_by(models.Lead.created_at.desc())
+            .limit(10)
+            .all()
+        )
+    else:
+        # admin: no filter applied -> sees 100% of team's leads
+        leads = db.query(models.Lead).order_by(models.Lead.created_at.desc()).all()
 
-    leads = query.order_by(models.Lead.created_at.desc()).all()
     return [_lead_to_out(lead) for lead in leads]
 
 
