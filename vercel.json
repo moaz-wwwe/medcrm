@@ -1,24 +1,35 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/auth/(.*)",
-      "destination": "/api/index"
+      "src": "backend/main.py",
+      "use": "@vercel/python"
     },
     {
-      "source": "/leads/(.*)",
-      "destination": "/api/index"
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/auth/(.*)",
+      "dest": "/backend/main.py"
     },
     {
-      "source": "/call-logs/(.*)",
-      "destination": "/api/index"
+      "src": "/leads/(.*)",
+      "dest": "/backend/main.py"
     },
     {
-      "source": "/api/manager-chat",
-      "destination": "/api/index"
+      "src": "/call-logs/(.*)",
+      "dest": "/backend/main.py"
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
+      "src": "/api/(.*)",
+      "dest": "/backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ]
 }

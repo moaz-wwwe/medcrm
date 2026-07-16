@@ -20,11 +20,6 @@ Role-based access control (RBAC) summary:
 """
 
 import os
-import sys
-
-# Add the 'backend' folder to the python path so imports work correctly
-backend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backend")
-sys.path.insert(0, backend_dir)
 
 from collections import defaultdict
 from datetime import datetime
