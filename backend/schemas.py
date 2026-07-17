@@ -85,11 +85,16 @@ class LeadOut(BaseModel):
     @computed_field
     @property
     def whatsapp_link(self) -> str:
-        """wa.me deep link - digits only, no leading '+' or symbols."""
+        """wa.me deep link - handles Egyptian numbers and stripped leading zeros."""
         phone_str = self.phone or ""
         digits = re.sub(r"\D", "", phone_str)
+        if digits.startswith("00"):
+            digits = digits[2:]
         if digits.startswith("01") and len(digits) == 11:
             digits = "2" + digits
+        elif len(digits) == 10 and digits.startswith("1"):
+            # Excel sometimes strips the leading zero from 01...
+            digits = "20" + digits
         return f"https://wa.me/{digits}"
 
     @computed_field
