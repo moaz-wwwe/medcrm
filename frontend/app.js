@@ -356,7 +356,7 @@ window.fetchAdminData = async function() {
     const leadsTbody = document.getElementById("adminLeadsTable");
     const logsTbody = document.getElementById("adminLogsTable");
     
-    if (!leadsTbody || !logsTbody) return;
+    if (!leadsTbody) return;
 
     try {
         // Fetch Leads
@@ -378,8 +378,15 @@ window.fetchAdminData = async function() {
                         <td>${l.phone || 'N/A'}</td>
                         <td>${l.assigned_rep_username || 'N/A'}</td>
                         <td style="color:var(--text-muted); font-size:0.8rem;">${l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</td>
+                        <td>
+                            <div style="display:flex; gap:5px;">
+                                <a href="${l.call_link || 'tel:' + l.phone}" class="action-btn call" style="padding:4px 8px; font-size:0.75rem; border-radius:4px; text-decoration:none;">Call</a>
+                                <a href="${l.whatsapp_link}" target="_blank" class="action-btn whatsapp" style="padding:4px 8px; font-size:0.75rem; border-radius:4px; text-decoration:none;">WhatsApp</a>
+                            </div>
+                        </td>
                     </tr>
                 `;
+
             });
             
             if (leads.length > 200) {
@@ -390,34 +397,36 @@ window.fetchAdminData = async function() {
         }
 
         // Fetch Logs
-        const logsRes = await fetch(`${API_BASE}/call-logs/`, { headers: getAuthHeaders() });
-        if (logsRes.ok) {
-            const logs = await logsRes.json();
-            let html = "";
-            
-            const displayLogs = logs.slice(0, 200);
-            
-            displayLogs.forEach(l => {
-                const salesAmt = l.sales_amount ? Number(l.sales_amount) : 0;
-                html += `
-                    <tr>
-                        <td style="color:var(--text-muted); font-size:0.8rem;">${l.timestamp ? new Date(l.timestamp).toLocaleString() : '-'}</td>
-                        <td><strong>${l.rep_username || 'N/A'}</strong></td>
-                        <td>${l.lead_name || l.lead_id}</td>
-                        <td><span class="badge contacted">${l.call_result || '-'}</span></td>
-                        <td style="color:var(--accent-green); font-weight:bold;">$${salesAmt.toFixed(2)}</td>
-                        <td>${l.notes || '-'}</td>
-                    </tr>
-                `;
-            });
-            
-            if (logs.length > 200) {
-                html += `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-style:italic;">Showing latest 200 of ${logs.length} logs.</td></tr>`;
+        if (logsTbody) {
+            const logsRes = await fetch(`${API_BASE}/call-logs/`, { headers: getAuthHeaders() });
+            if (logsRes.ok) {
+                const logs = await logsRes.json();
+                let html = "";
+                
+                const displayLogs = logs.slice(0, 200);
+                
+                displayLogs.forEach(l => {
+                    const salesAmt = l.sales_amount ? Number(l.sales_amount) : 0;
+                    html += `
+                        <tr>
+                            <td style="color:var(--text-muted); font-size:0.8rem;">${l.timestamp ? new Date(l.timestamp).toLocaleString() : '-'}</td>
+                            <td><strong>${l.rep_username || 'N/A'}</strong></td>
+                            <td>${l.lead_name || l.lead_id}</td>
+                            <td><span class="badge contacted">${l.call_result || '-'}</span></td>
+                            <td style="color:var(--accent-green); font-weight:bold;">$${salesAmt.toFixed(2)}</td>
+                            <td>${l.notes || '-'}</td>
+                        </tr>
+                    `;
+                });
+                
+                if (logs.length > 200) {
+                    html += `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-style:italic;">Showing latest 200 of ${logs.length} logs.</td></tr>`;
+                }
+                
+                logsTbody.innerHTML = html;
+            } else {
+                console.error("Logs fetch failed:", await logsRes.text());
             }
-            
-            logsTbody.innerHTML = html;
-        } else {
-            console.error("Logs fetch failed:", await logsRes.text());
         }
     } catch(err) {
         console.error("Admin data fetch exception:", err);
