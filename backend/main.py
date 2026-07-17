@@ -406,25 +406,29 @@ async def bulk_upload_leads(
 
 @app.get("/leads/", response_model=List[schemas.LeadOut])
 def list_leads(
+    status: Optional[str] = "all",
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
     # --- Core RBAC enforcement ---
-    if current_user.role == models.UserRole.SALES_REP:
-        # Queue System: Only show 10 leads that have NOT been processed (no call logs)
-        leads = (
-            db.query(models.Lead)
-            .outerjoin(models.CallLog)
-            .filter(models.Lead.assigned_to == current_user.id)
-            .filter(models.CallLog.id == None)
-            .order_by(models.Lead.created_at.desc())
-            .limit(10)
-            .all()
-        )
-    else:
-        # admin: no filter applied -> sees 100% of team's leads
-        leads = db.query(models.Lead).order_by(models.Lead.created_at.desc()).all()
+    query = db.query(models.Lead).outerjoin(models.CallLog)
 
+    if current_user.role == models.UserRole.SALES_REP:
+        query = query.filter(models.Lead.assigned_to == current_user.id)
+        if status == "pending" or status == "all":
+            # Queue System: Only show 10 leads that have NOT been processed (no call logs)
+            query = query.filter(models.CallLog.id == None).limit(10)
+        elif status == "finished":
+            # Show all leads processed by this rep
+            query = query.filter(models.CallLog.id != None)
+    else:
+        # admin: sees team's leads
+        if status == "pending":
+            query = query.filter(models.CallLog.id == None)
+        elif status == "finished":
+            query = query.filter(models.CallLog.id != None)
+
+    leads = query.order_by(models.Lead.created_at.desc()).all()
     return [_lead_to_out(lead) for lead in leads]
 
 

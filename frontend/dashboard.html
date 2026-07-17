@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <div class="header glass-panel">
         <div>
             <h2 style="margin:0; font-size:1.25rem;">My Leads</h2>
@@ -19,21 +20,72 @@
         </div>
     </div>
 
-    <div class="container">
-        <div id="leadsList" class="leads-grid">
-            <!-- Skeleton loaders before data arrives -->
-            <div class="lead-card glass-panel">
-                <div class="skeleton skeleton-text"></div>
-                <div class="skeleton skeleton-text short"></div>
-                <div class="skeleton skeleton-text"></div>
+    <!-- Main App UI (Hidden by default) -->
+    <div class="container" id="mainApp" style="display: none;">
+        
+        <!-- ======================= SALES REP VIEW ======================= -->
+        <div id="repView" style="display: none;">
+            <div class="header-actions">
+                <h2>العملاء</h2>
+                <button class="btn btn-primary" onclick="openModal('addLeadModal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    New Lead
+                </button>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <button class="btn btn-primary" id="btnRepPending" onclick="switchRepTab('pending')" style="flex:1;">العملاء الحاليين</button>
+                <button class="btn btn-secondary" id="btnRepFinished" onclick="switchRepTab('finished')" style="flex:1;">العملاء المنتهيين</button>
+            </div>
+
+            <div class="leads-grid" id="leadsList">
+                <!-- Lead cards populated here -->
+            </div>
+        </div>
+
+        <!-- ======================= ADMIN VIEW ======================= -->
+        <div id="adminView" style="display: none;">
+            <div class="header-actions" style="margin-bottom: 2rem;">
+                <h2>Admin Dashboard</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="openModal('bulkUploadModal')" style="background-color: var(--accent-purple); color: white;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Upload Leads CSV
+                    </button>
+                    <button class="btn btn-secondary" onclick="openModal('addLeadModal')">Add Lead</button>
+                    <button class="btn btn-secondary" onclick="openModal('addUserModal')">Add User</button>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="margin-bottom: 2rem;">
+                <div class="header-actions">
+                    <h3>All System Leads</h3>
+                    <select id="adminLeadsFilter" class="input" style="width:200px; padding:0.5rem;" onchange="fetchAdminData()">
+                        <option value="all">جميع العملاء (All)</option>
+                        <option value="pending">عملاء لم يتم التواصل معهم (Pending)</option>
+                        <option value="finished">عملاء تم الانتهاء منهم (Finished)</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Phone</th>
+                                <th>Rep</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminLeadsTable">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- Floating Action Button for Adding Leads -->
-    <button class="fab" id="addLeadFab" title="Add New Lead">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-    </button>
 
     <!-- Bottom Navigation -->
     <div class="bottom-nav">

@@ -168,13 +168,28 @@ if (loginForm) {
 // Dashboard (Leads & Call Logs)
 // -------------------------------------------------------------
 
-// Fetch Leads (Dashboard)
+// Set active rep tab state globally
+let currentRepTab = 'pending';
+
+window.switchRepTab = function(tabName) {
+    currentRepTab = tabName;
+    if (tabName === 'pending') {
+        document.getElementById('btnRepPending').className = "btn btn-primary";
+        document.getElementById('btnRepFinished').className = "btn btn-secondary";
+    } else {
+        document.getElementById('btnRepPending').className = "btn btn-secondary";
+        document.getElementById('btnRepFinished').className = "btn btn-primary";
+    }
+    fetchLeads();
+}
+
+// Fetch Leads (Sales Rep)
 async function fetchLeads() {
     const leadsList = document.getElementById("leadsList");
     if (!leadsList) return;
 
     try {
-        const res = await fetch(`${API_BASE}/leads/`, {
+        const res = await fetch(`${API_BASE}/leads/?status=${currentRepTab}`, {
             headers: getAuthHeaders()
         });
         
@@ -207,7 +222,7 @@ async function fetchLeads() {
                             <span>Rep: ${lead.assigned_rep_username || 'N/A'}</span>
                         </div>
                     </div>
-                    <button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">تسجيل النتيجة</button>
+                    ${currentRepTab === 'pending' ? `<button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">تسجيل النتيجة</button>` : ''}
                 </div>
                 <p style="font-size:0.875rem; margin-bottom:0;"><strong>Phone:</strong> ${lead.phone}</p>
                 <p style="font-size:0.875rem;"><strong>Notes:</strong> ${lead.notes || 'No notes'}</p>
@@ -326,7 +341,7 @@ if (addLogForm) {
 // -------------------------------------------------------------
 // Admin Dashboard
 // -------------------------------------------------------------
-async function fetchAdminData() {
+window.fetchAdminData = async function() {
     const leadsTbody = document.getElementById("adminLeadsTable");
     const logsTbody = document.getElementById("adminLogsTable");
     
@@ -334,7 +349,8 @@ async function fetchAdminData() {
 
     try {
         // Fetch Leads
-        const leadsRes = await fetch(`${API_BASE}/leads/`, { headers: getAuthHeaders() });
+        const statusFilter = document.getElementById("adminLeadsFilter") ? document.getElementById("adminLeadsFilter").value : "all";
+        const leadsRes = await fetch(`${API_BASE}/leads/?status=${statusFilter}`, { headers: getAuthHeaders() });
         if (leadsRes.ok) {
             const leads = await leadsRes.json();
             let html = "";
