@@ -159,6 +159,18 @@ def read_me(current_user: models.User = Depends(auth.get_current_user)):
 
 def _lead_to_out(lead: models.Lead) -> schemas.LeadOut:
     out = schemas.LeadOut.model_validate(lead)
+    
+    # Clean phone number for links
+    clean_phone = "".join(c for c in lead.phone if c.isdigit())
+    
+    # WhatsApp requires country code (e.g. 2 for Egypt if number is 01...)
+    if clean_phone.startswith("01") and len(clean_phone) == 11:
+        wa_phone = "2" + clean_phone
+    else:
+        wa_phone = clean_phone
+        
+    out.call_link = f"tel:{clean_phone}"
+    out.whatsapp_link = f"https://wa.me/{wa_phone}"
     out.assigned_rep_username = lead.assigned_rep.username if lead.assigned_rep else None
     return out
 
