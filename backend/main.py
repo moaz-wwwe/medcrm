@@ -224,21 +224,49 @@ async def bulk_upload_leads(
         data_rows = []
         if file.filename.endswith('.csv'):
             decoded_content = content.decode('utf-8-sig')
+            
+            # Read first row to get headers and fix duplicates/empties
             try:
-                # Try to automatically detect delimiter (comma, semicolon, etc.)
                 dialect = csv.Sniffer().sniff(decoded_content[:2048])
-                reader = csv.DictReader(io.StringIO(decoded_content), dialect=dialect)
+                reader = csv.reader(io.StringIO(decoded_content), dialect=dialect)
             except Exception:
-                reader = csv.DictReader(io.StringIO(decoded_content))
-            data_rows = list(reader)
+                reader = csv.reader(io.StringIO(decoded_content))
+                
+            rows_list = list(reader)
+            if rows_list:
+                raw_headers = rows_list[0]
+                headers = []
+                for i, h in enumerate(raw_headers):
+                    h_clean = str(h).strip() if h else ""
+                    if not h_clean or h_clean in headers:
+                        h_clean = f"column_{i+1}"
+                    headers.append(h_clean)
+                
+                for row in rows_list[1:]:
+                    if any(row):
+                        # Pad row if shorter than headers
+                        padded_row = row + [""] * (len(headers) - len(row))
+                        data_rows.append(dict(zip(headers, padded_row)))
+
         elif file.filename.endswith('.xlsx'):
             import openpyxl
             wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
             sheet = wb.active
-            headers = [str(cell.value).strip() if cell.value else "" for cell in sheet[1]]
+            
+            # Extract headers and fix duplicates/empties
+            raw_headers = [str(cell.value).strip() if cell.value else "" for cell in sheet[1]]
+            headers = []
+            for i, h in enumerate(raw_headers):
+                if not h or h in headers:
+                    h = f"column_{i+1}"
+                headers.append(h)
+                
             for row in sheet.iter_rows(min_row=2, values_only=True):
                 if any(row):  # Skip completely empty rows
-                    data_rows.append(dict(zip(headers, row)))
+                    # row might contain None, replace with empty string
+                    clean_row = [str(cell).strip() if cell is not None else "" for cell in row]
+                    padded_row = clean_row + [""] * (len(headers) - len(clean_row))
+                    data_rows.append(dict(zip(headers, padded_row)))
         
         if not data_rows:
             raise HTTPException(status_code=400, detail="The uploaded file is empty.")
