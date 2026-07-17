@@ -417,18 +417,26 @@ def list_leads(
         query = query.filter(models.Lead.assigned_to == current_user.id)
         if status == "pending" or status == "all":
             # Queue System: Only show 10 leads that have NOT been processed (no call logs)
-            query = query.filter(models.CallLog.id == None).limit(10)
+            query = query.filter(models.CallLog.id == None)
+            limit_val = 10
         elif status == "finished":
             # Show all leads processed by this rep
             query = query.filter(models.CallLog.id != None)
+            limit_val = None
     else:
         # admin: sees team's leads
+        limit_val = None
         if status == "pending":
             query = query.filter(models.CallLog.id == None)
         elif status == "finished":
             query = query.filter(models.CallLog.id != None)
 
-    leads = query.order_by(models.Lead.created_at.desc()).all()
+    # Must apply order_by BEFORE limit
+    query = query.order_by(models.Lead.created_at.desc())
+    if limit_val:
+        query = query.limit(limit_val)
+        
+    leads = query.all()
     return [_lead_to_out(lead) for lead in leads]
 
 
