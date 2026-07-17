@@ -161,7 +161,8 @@ def _lead_to_out(lead: models.Lead) -> schemas.LeadOut:
     out = schemas.LeadOut.model_validate(lead)
     
     # Clean phone number for links
-    clean_phone = "".join(c for c in lead.phone if c.isdigit())
+    phone_str = lead.phone or ""
+    clean_phone = "".join(c for c in phone_str if c.isdigit())
     
     # WhatsApp requires country code (e.g. 2 for Egypt if number is 01...)
     if clean_phone.startswith("01") and len(clean_phone) == 11:
