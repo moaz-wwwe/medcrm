@@ -174,6 +174,17 @@ def get_analytics(current_user: models.User = Depends(auth.get_current_user), db
         "calls_by_outcome": calls_by_outcome
     }
 
+@app.get("/api/migrate-db")
+def run_db_migration(db: Session = Depends(get_db)):
+    try:
+        from sqlalchemy import text
+        # Specifically use TIMESTAMP for postgres, DATETIME for sqlite. We can use TIMESTAMP for both.
+        # But wait, we can just do sqlalchemy's generic "TIMESTAMP"
+        db.execute(text("ALTER TABLE leads ADD COLUMN followup_date TIMESTAMP;"))
+        db.commit()
+        return {"status": "success", "message": "Migration completed successfully."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.get("/auth/me", response_model=schemas.UserOut)
 def read_me(current_user: models.User = Depends(auth.get_current_user)):
