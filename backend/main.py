@@ -411,25 +411,25 @@ def list_leads(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     # --- Core RBAC enforcement ---
-    query = db.query(models.Lead).outerjoin(models.CallLog)
+    query = db.query(models.Lead)
 
     if current_user.role == models.UserRole.SALES_REP:
         query = query.filter(models.Lead.assigned_to == current_user.id)
         if status == "pending" or status == "all":
             # Queue System: Only show 10 leads that have NOT been processed (no call logs)
-            query = query.filter(models.CallLog.id == None)
+            query = query.filter(~models.Lead.call_logs.any())
             limit_val = 10
         elif status == "finished":
             # Show all leads processed by this rep
-            query = query.filter(models.CallLog.id != None)
+            query = query.filter(models.Lead.call_logs.any())
             limit_val = None
     else:
         # admin: sees team's leads
         limit_val = None
         if status == "pending":
-            query = query.filter(models.CallLog.id == None)
+            query = query.filter(~models.Lead.call_logs.any())
         elif status == "finished":
-            query = query.filter(models.CallLog.id != None)
+            query = query.filter(models.Lead.call_logs.any())
 
     # Must apply order_by BEFORE limit
     query = query.order_by(models.Lead.created_at.desc())
