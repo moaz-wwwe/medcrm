@@ -258,6 +258,37 @@ async def bulk_upload_leads(
         if not reps:
             raise HTTPException(status_code=400, detail="No sales reps available in the system to assign leads to.")
 
+        # AI-based Header Mapping (run once on the first row)
+        ai_mapping = {"name": None, "phone": None, "facility_type": None}
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        if gemini_api_key and gemini_api_key != "your-gemini-api-key-here" and normalized_rows:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=gemini_api_key)
+                model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
+                sample_row = normalized_rows[0]
+                prompt = (
+                    "You are a data extraction assistant. Given the following first row of a CSV file (keys and values), "
+                    "identify which key corresponds to the business/customer name, which key corresponds to the phone/mobile number, "
+                    "and which key corresponds to the facility type or business category.\n\n"
+                    f"Row data: {json.dumps(sample_row, ensure_ascii=False)}\n\n"
+                    "Reply ONLY with a valid JSON object in this exact format, with no markdown formatting or extra text: "
+                    '{"name_key": "the_exact_key", "phone_key": "the_exact_key", "facility_type_key": "the_exact_key"}. '
+                    "If a key cannot be found, use null."
+                )
+                response = model.generate_content(prompt, request_options={"timeout": 15})
+                reply_text = (response.text or "").strip()
+                # Clean up markdown if the LLM adds it
+                if reply_text.startswith("```json"):
+                    reply_text = reply_text.split("```json")[1].split("```")[0].strip()
+                elif reply_text.startswith("```"):
+                    reply_text = reply_text.split("```")[1].split("```")[0].strip()
+                
+                ai_mapping = json.loads(reply_text)
+            except Exception as e:
+                print(f"AI Mapping failed: {e}")
+                pass # fallback to hardcoded matching
+
         # Withdraw all old, uncalled leads from sales reps and give them to the Admin
         untouched_leads = db.query(models.Lead).outerjoin(models.CallLog).filter(
             models.CallLog.id == None,
@@ -270,14 +301,29 @@ async def bulk_upload_leads(
         rep_count = len(reps)
 
         for i, row in enumerate(normalized_rows):
-            # 1. Try exact matches first
-            name = str(row.get('business name') or row.get('name') or row.get('company') or row.get('title') or '').strip()
-            phone = str(row.get('mobile') or row.get('phone') or row.get('telephone') or '').strip()
-            facility_type = str(row.get('category') or row.get('type') or row.get('facility_type') or '').strip()
+            # 1. Try AI mapping first, then exact matches
+            name = ""
+            phone = ""
+            facility_type = ""
+            
+            if ai_mapping.get("name_key") and ai_mapping["name_key"] in row:
+                name = str(row[ai_mapping["name_key"]]).strip()
+            if ai_mapping.get("phone_key") and ai_mapping["phone_key"] in row:
+                phone = str(row[ai_mapping["phone_key"]]).strip()
+            if ai_mapping.get("facility_type_key") and ai_mapping["facility_type_key"] in row:
+                facility_type = str(row[ai_mapping["facility_type_key"]]).strip()
+
+            # 2. Try exact matches if AI missed it
+            if not name:
+                name = str(row.get('business name') or row.get('name') or row.get('company') or row.get('title') or '').strip()
+            if not phone:
+                phone = str(row.get('mobile') or row.get('phone') or row.get('telephone') or '').strip()
+            if not facility_type:
+                facility_type = str(row.get('category') or row.get('type') or row.get('facility_type') or '').strip()
             
             notes_parts = []
             
-            # 2. Try substring matching as fallback, and collect notes
+            # 3. Try substring matching as fallback, and collect notes
             for k, v in row.items():
                 v_str = str(v).strip()
                 if not v_str: continue
