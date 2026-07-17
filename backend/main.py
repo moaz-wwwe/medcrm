@@ -277,8 +277,8 @@ async def bulk_upload_leads(
                     phone = v_str
                 elif 'category' in k or 'type' in k or 'نوع' in k or 'تصنيف' in k:
                     facility_type = v_str
-                else:
-                    notes_parts.append(f"{k}: {v_str}")
+                elif 'notes' in k or 'ملاحظات' in k:
+                    notes_parts.append(v_str)
             
             if not name or not phone:
                 continue # Skip invalid rows
