@@ -224,7 +224,12 @@ async def bulk_upload_leads(
         data_rows = []
         if file.filename.endswith('.csv'):
             decoded_content = content.decode('utf-8-sig')
-            reader = csv.DictReader(io.StringIO(decoded_content))
+            try:
+                # Try to automatically detect delimiter (comma, semicolon, etc.)
+                dialect = csv.Sniffer().sniff(decoded_content[:2048])
+                reader = csv.DictReader(io.StringIO(decoded_content), dialect=dialect)
+            except Exception:
+                reader = csv.DictReader(io.StringIO(decoded_content))
             data_rows = list(reader)
         elif file.filename.endswith('.xlsx'):
             import openpyxl
@@ -292,6 +297,9 @@ async def bulk_upload_leads(
             )
             db.add(new_lead)
             leads_created += 1
+            
+        if leads_created == 0:
+            raise HTTPException(status_code=400, detail="لم يتم العثور على أي عملاء صالحين في الملف. تأكد من وجود عمود للاسم وعمود للرقم وأن البيانات غير فارغة.")
             
         db.commit()
 
