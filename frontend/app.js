@@ -275,19 +275,19 @@ if (addLeadForm) {
 
 // Log Activity Logic
 window.prepareLogActivity = function(leadId) {
-    document.getElementById("logLeadId").value = leadId;
-    openModal('addLogModal');
+    document.getElementById("callLeadId").value = leadId;
+    openModal('callLogModal');
 }
 
-const addLogForm = document.getElementById("addLogForm");
+const addLogForm = document.getElementById("callLogForm");
 if (addLogForm) {
     addLogForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const payload = {
-            lead_id: parseInt(document.getElementById("logLeadId").value),
-            call_result: document.getElementById("logResult").value,
-            sales_amount: parseFloat(document.getElementById("logSales").value) || 0.0,
-            notes: document.getElementById("logNotes").value
+            lead_id: parseInt(document.getElementById("callLeadId").value),
+            call_result: document.getElementById("callResult").value,
+            sales_amount: parseFloat(document.getElementById("callSales").value) || 0.0,
+            notes: document.getElementById("callNotes").value
         };
 
         try {
@@ -301,7 +301,7 @@ if (addLogForm) {
             });
             if (res.ok) {
                 showToast("Lead processed successfully!");
-                closeModal('addLogModal');
+                closeModal('callLogModal');
                 
                 // Refresh leads queue to remove the processed lead and pull a new one
                 fetchLeads();
