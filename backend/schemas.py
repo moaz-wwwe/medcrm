@@ -86,14 +86,18 @@ class LeadOut(BaseModel):
     @property
     def whatsapp_link(self) -> str:
         """wa.me deep link - digits only, no leading '+' or symbols."""
-        digits = re.sub(r"\D", "", self.phone)
+        phone_str = self.phone or ""
+        digits = re.sub(r"\D", "", phone_str)
+        if digits.startswith("01") and len(digits) == 11:
+            digits = "2" + digits
         return f"https://wa.me/{digits}"
 
     @computed_field
     @property
     def call_link(self) -> str:
         """tel: deep link, preserves a leading '+' for international numbers."""
-        digits = re.sub(r"[^\d+]", "", self.phone)
+        phone_str = self.phone or ""
+        digits = re.sub(r"[^\d+]", "", phone_str)
         return f"tel:{digits}"
 
 
