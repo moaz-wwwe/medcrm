@@ -258,6 +258,14 @@ async def bulk_upload_leads(
         if not reps:
             raise HTTPException(status_code=400, detail="No sales reps available in the system to assign leads to.")
 
+        # Withdraw all old, uncalled leads from sales reps and give them to the Admin
+        untouched_leads = db.query(models.Lead).outerjoin(models.CallLog).filter(
+            models.CallLog.id == None,
+            models.Lead.assigned_to != current_user.id
+        ).all()
+        for old_lead in untouched_leads:
+            old_lead.assigned_to = current_user.id
+
         leads_created = 0
         rep_count = len(reps)
 
