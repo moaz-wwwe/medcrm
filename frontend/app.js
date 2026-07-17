@@ -1,6 +1,13 @@
 // Base API URL (Update this if backend is hosted elsewhere)
 const API_BASE = "https://medcrm-zeta.vercel.app";
 
+// Global error handler to help debug UI issues in production
+window.onerror = function(message, source, lineno, colno, error) {
+    showToast(`JS Error: ${message} (line ${lineno})`, "error");
+    console.error(message, source, lineno, colno, error);
+    return false;
+};
+
 // -------------------------------------------------------------
 // UI Utilities (Toasts, Modals, Skeleton)
 // -------------------------------------------------------------

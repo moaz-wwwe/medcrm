@@ -55,17 +55,42 @@
             </form>
         </div>
 
-        <h3 style="margin-bottom:15px;">All Company Leads</h3>
-        <div style="margin-bottom:15px; display:flex; gap:10px;">
-            <input type="file" id="csvFileInput" accept=".csv, .xlsx" style="display:none;">
-            <button id="uploadCsvBtn" class="btn btn-secondary" style="font-size:0.85rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                Upload File
-            </button>
-            <a href="template.csv" download class="btn btn-secondary" style="font-size:0.85rem; text-decoration:none; display:flex; align-items:center;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Download Template
-            </a>
+        <!-- Analytics Charts -->
+        <div class="glass-panel" style="margin-bottom: 30px; padding: 20px;">
+            <h3 style="margin-bottom: 20px;">أداء المبيعات (Analytics)</h3>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px;">
+                    <canvas id="salesChart"></canvas>
+                </div>
+                <div style="flex: 1; min-width: 300px;">
+                    <canvas id="callsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+            <h3 style="margin:0;">All Company Leads</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="search" id="adminSearchInput" class="input" placeholder="بحث بالاسم أو الرقم..." oninput="filterAdminLeads()" style="width:200px; padding:0.5rem; height: 38px;">
+                <select id="adminLeadsFilter" class="input" style="width:180px; padding:0.5rem; height: 38px;" onchange="fetchAdminData()">
+                    <option value="all">جميع العملاء (All)</option>
+                    <option value="pending">عملاء لم يتم التواصل معهم (Pending)</option>
+                    <option value="finished">عملاء تم الانتهاء منهم (Finished)</option>
+                    <option value="followups">مكالمات اليوم (Follow-ups)</option>
+                </select>
+                <input type="file" id="csvFileInput" accept=".csv, .xlsx" style="display:none;">
+                <button id="uploadCsvBtn" class="btn btn-secondary" style="font-size:0.85rem; height: 38px; display: flex; align-items: center; gap: 4px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Upload File
+                </button>
+                <button id="exportCsvBtn" onclick="exportAdminLeadsToCsv()" class="btn btn-secondary" style="font-size:0.85rem; height: 38px; background-color: var(--accent-green); color: white; border: none;">
+                    تصدير البيانات 📥
+                </button>
+                <a href="template.csv" download class="btn btn-secondary" style="font-size:0.85rem; text-decoration:none; display:flex; align-items:center; height: 38px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download Template
+                </a>
+            </div>
         </div>
         <div class="table-container">
             <table>
@@ -157,6 +182,7 @@
     </div>
 
     <div id="toast-container" class="toast-container"></div>
-    <script src="app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha512-ZvbjOMzEhjzo1mPh1FS58zroIbS79C0e118vLz3C49k1U7V0R3FjU4S9TfD7K5G3C4eG/Z1mJc8qfH5P7pW99Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="app.js?v=7"></script>
 </body>
 </html>
