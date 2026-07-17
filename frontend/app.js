@@ -345,12 +345,12 @@ async function fetchAdminData() {
             displayLeads.forEach(l => {
                 html += `
                     <tr>
-                        <td>${l.id}</td>
-                        <td><strong>${l.name}</strong></td>
-                        <td><span class="badge new">${l.facility_type}</span></td>
-                        <td>${l.phone}</td>
+                        <td>${l.id || '-'}</td>
+                        <td><strong>${l.name || 'No Name'}</strong></td>
+                        <td><span class="badge new">${l.facility_type || 'N/A'}</span></td>
+                        <td>${l.phone || 'N/A'}</td>
                         <td>${l.assigned_rep_username || 'N/A'}</td>
-                        <td style="color:var(--text-muted); font-size:0.8rem;">${new Date(l.created_at).toLocaleDateString()}</td>
+                        <td style="color:var(--text-muted); font-size:0.8rem;">${l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</td>
                     </tr>
                 `;
             });
@@ -371,13 +371,14 @@ async function fetchAdminData() {
             const displayLogs = logs.slice(0, 200);
             
             displayLogs.forEach(l => {
+                const salesAmt = l.sales_amount ? Number(l.sales_amount) : 0;
                 html += `
                     <tr>
-                        <td style="color:var(--text-muted); font-size:0.8rem;">${new Date(l.timestamp).toLocaleString()}</td>
+                        <td style="color:var(--text-muted); font-size:0.8rem;">${l.timestamp ? new Date(l.timestamp).toLocaleString() : '-'}</td>
                         <td><strong>${l.rep_username || 'N/A'}</strong></td>
                         <td>${l.lead_name || l.lead_id}</td>
-                        <td><span class="badge contacted">${l.call_result}</span></td>
-                        <td style="color:var(--accent-green); font-weight:bold;">$${(l.sales_amount || 0).toFixed(2)}</td>
+                        <td><span class="badge contacted">${l.call_result || '-'}</span></td>
+                        <td style="color:var(--accent-green); font-weight:bold;">$${salesAmt.toFixed(2)}</td>
                         <td>${l.notes || '-'}</td>
                     </tr>
                 `;
@@ -388,9 +389,12 @@ async function fetchAdminData() {
             }
             
             logsTbody.innerHTML = html;
+        } else {
+            console.error("Logs fetch failed:", await logsRes.text());
         }
     } catch(err) {
-        showToast("Error loading admin data", "error");
+        console.error("Admin data fetch exception:", err);
+        showToast("Error loading admin data: " + err.message, "error");
     }
 }
 
