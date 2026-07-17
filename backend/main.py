@@ -336,6 +336,34 @@ async def bulk_upload_leads(
                     facility_type = v_str
                 elif 'notes' in k or 'ملاحظات' in k:
                     notes_parts.append(v_str)
+                    
+            # 4. Ultimate Fallback: Deep Value Scanning (Ignore headers entirely)
+            if not phone:
+                for v in row.values():
+                    v_str = str(v).strip()
+                    if not v_str: continue
+                    digits = ''.join(c for c in v_str if c.isdigit())
+                    if 8 <= len(digits) <= 15:
+                        allowed_chars = set("0123456789 +-().")
+                        if all(c in allowed_chars for c in v_str):
+                            phone = v_str
+                            break
+
+            if not name:
+                best_name = ""
+                for v in row.values():
+                    v_str = str(v).strip()
+                    if not v_str: continue
+                    # skip URLs and Emails
+                    if "http" in v_str.lower() or "www." in v_str.lower() or "@" in v_str:
+                        continue
+                    # skip strings that are mostly numbers
+                    digits = ''.join(c for c in v_str if c.isdigit())
+                    if len(digits) > 5:
+                        continue
+                    if len(v_str) > len(best_name) and len(v_str) < 100:
+                        best_name = v_str
+                name = best_name
             
             if not name or not phone:
                 continue # Skip invalid rows
