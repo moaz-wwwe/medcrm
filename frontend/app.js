@@ -377,7 +377,7 @@ async function fetchAdminData() {
                         <td><strong>${l.rep_username || 'N/A'}</strong></td>
                         <td>${l.lead_name || l.lead_id}</td>
                         <td><span class="badge contacted">${l.call_result}</span></td>
-                        <td style="color:var(--accent-green); font-weight:bold;">$${l.sales_amount.toFixed(2)}</td>
+                        <td style="color:var(--accent-green); font-weight:bold;">$${(l.sales_amount || 0).toFixed(2)}</td>
                         <td>${l.notes || '-'}</td>
                     </tr>
                 `;
