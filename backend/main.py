@@ -262,20 +262,23 @@ async def bulk_upload_leads(
         rep_count = len(reps)
 
         for i, row in enumerate(normalized_rows):
-            name = ""
-            phone = ""
-            facility_type = ""
+            # 1. Try exact matches first
+            name = str(row.get('business name') or row.get('name') or row.get('company') or row.get('title') or '').strip()
+            phone = str(row.get('mobile') or row.get('phone') or row.get('telephone') or '').strip()
+            facility_type = str(row.get('category') or row.get('type') or row.get('facility_type') or '').strip()
+            
             notes_parts = []
             
+            # 2. Try substring matching as fallback, and collect notes
             for k, v in row.items():
                 v_str = str(v).strip()
                 if not v_str: continue
                 
-                if 'name' in k or 'اسم' in k:
+                if not name and ('name' in k or 'اسم' in k):
                     name = v_str
-                elif 'phone' in k or 'mobile' in k or 'رقم' in k or 'موبايل' in k:
+                elif not phone and ('phone' in k or 'mobile' in k or 'رقم' in k or 'موبايل' in k):
                     phone = v_str
-                elif 'category' in k or 'type' in k or 'نوع' in k or 'تصنيف' in k:
+                elif not facility_type and ('category' in k or 'type' in k or 'نوع' in k or 'تصنيف' in k):
                     facility_type = v_str
                 elif 'notes' in k or 'ملاحظات' in k:
                     notes_parts.append(v_str)
