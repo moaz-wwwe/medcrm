@@ -79,6 +79,7 @@ class LeadOut(BaseModel):
     facility_type: str
     notes: Optional[str] = None
     created_at: datetime
+    followup_date: Optional[datetime] = None
     assigned_to: int
     assigned_rep_username: Optional[str] = None
 
@@ -115,6 +116,7 @@ class CallLogCreate(BaseModel):
     call_result: str
     sales_amount: float = 0.0
     notes: Optional[str] = None
+    next_followup: Optional[datetime] = None
 
 
 class CallLogOut(BaseModel):

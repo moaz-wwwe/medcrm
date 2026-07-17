@@ -52,6 +52,7 @@ class Lead(Base):
     facility_type = Column(String, nullable=False)  # e.g. Hospital, Clinic, Pharmacy
     notes = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    followup_date = Column(DateTime, nullable=True)
 
     # FK -> User.id. This is the core of the row-level access control:
     # sales_rep users may only ever see/create leads where assigned_to == their own id.

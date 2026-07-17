@@ -184,12 +184,11 @@ let currentRepTab = 'pending';
 
 window.switchRepTab = function(tabName) {
     currentRepTab = tabName;
-    if (tabName === 'pending') {
-        document.getElementById('btnRepPending').className = "btn btn-primary";
-        document.getElementById('btnRepFinished').className = "btn btn-secondary";
-    } else {
-        document.getElementById('btnRepPending').className = "btn btn-secondary";
-        document.getElementById('btnRepFinished').className = "btn btn-primary";
+    document.getElementById('btnRepPending').className = (tabName === 'pending') ? "btn btn-primary" : "btn btn-secondary";
+    document.getElementById('btnRepFinished').className = (tabName === 'finished') ? "btn btn-primary" : "btn btn-secondary";
+    const followupsBtn = document.getElementById('btnRepFollowups');
+    if (followupsBtn) {
+        followupsBtn.className = (tabName === 'followups') ? "btn btn-primary" : "btn btn-secondary";
     }
     fetchLeads();
 }
@@ -249,10 +248,28 @@ async function fetchLeads() {
                 </div>
             `;
             leadsList.appendChild(card);
+            leadsList.appendChild(card);
         });
+        
+        // Apply existing filter if search box has text
+        filterRepLeads();
     } catch (error) {
         showToast("Error loading leads", "error");
     }
+}
+
+// Live Search for Reps
+window.filterRepLeads = function() {
+    const term = (document.getElementById("repSearchInput")?.value || "").toLowerCase();
+    const cards = document.querySelectorAll("#leadsList .lead-card");
+    cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        if (text.includes(term)) {
+            card.style.display = "flex";
+        } else {
+            card.style.display = "none";
+        }
+    });
 }
 
 // Add Lead Modal Logic
@@ -313,7 +330,8 @@ if (addLogForm) {
             lead_id: parseInt(document.getElementById("callLeadId").value),
             call_result: document.getElementById("callResult").value,
             sales_amount: parseFloat(document.getElementById("callSales").value) || 0.0,
-            notes: document.getElementById("callNotes").value
+            notes: document.getElementById("callNotes").value,
+            next_followup: document.getElementById("callNextFollowup")?.value ? document.getElementById("callNextFollowup").value + "T00:00:00Z" : null
         };
 
         try {
@@ -394,6 +412,10 @@ window.fetchAdminData = async function() {
             }
             
             leadsTbody.innerHTML = html;
+            
+            // Store globally for CSV export and Filtering
+            window.adminLeadsData = leads;
+            filterAdminLeads();
         }
 
         // Fetch Logs
@@ -428,9 +450,110 @@ window.fetchAdminData = async function() {
                 console.error("Logs fetch failed:", await logsRes.text());
             }
         }
+        // Fetch Charts Data
+        renderCharts();
+
     } catch(err) {
         console.error("Admin data fetch exception:", err);
         showToast("Error loading admin data: " + err.message, "error");
+    }
+}
+
+// Live Search for Admin Leads Table
+window.filterAdminLeads = function() {
+    const term = (document.getElementById("adminSearchInput")?.value || "").toLowerCase();
+    const rows = document.querySelectorAll("#adminLeadsTable tr");
+    rows.forEach(row => {
+        if (row.cells.length === 1) return; // Skip the "showing 200" row
+        const text = row.innerText.toLowerCase();
+        if (text.includes(term)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+// Export CSV
+window.exportAdminLeadsToCsv = function() {
+    const leads = window.adminLeadsData || [];
+    if (!leads.length) {
+        showToast("No data to export", "error");
+        return;
+    }
+    const headers = ["ID", "Name", "Phone", "Facility Type", "Assigned Rep", "Created At", "Follow-up Date"];
+    const csvRows = [headers.join(",")];
+    
+    leads.forEach(l => {
+        const row = [
+            l.id,
+            `"${(l.name||'').replace(/"/g, '""')}"`,
+            `"${(l.phone||'').replace(/"/g, '""')}"`,
+            `"${(l.facility_type||'').replace(/"/g, '""')}"`,
+            `"${(l.assigned_rep_username||'').replace(/"/g, '""')}"`,
+            l.created_at,
+            l.followup_date || ''
+        ];
+        csvRows.push(row.join(","));
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "medcrm_leads.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Render Analytics Charts
+let salesChartInst = null;
+let callsChartInst = null;
+window.renderCharts = async function() {
+    try {
+        const res = await fetch(`${API_BASE}/api/analytics`, { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const salesCtx = document.getElementById('salesChart')?.getContext('2d');
+        const callsCtx = document.getElementById('callsChart')?.getContext('2d');
+        
+        if (!salesCtx || !callsCtx || typeof Chart === 'undefined') return;
+
+        if (salesChartInst) salesChartInst.destroy();
+        if (callsChartInst) callsChartInst.destroy();
+
+        salesChartInst = new Chart(salesCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(data.sales_by_rep || {}),
+                datasets: [{
+                    label: 'Total Sales ($)',
+                    data: Object.values(data.sales_by_rep || {}),
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Sales by Rep' } } }
+        });
+
+        callsChartInst = new Chart(callsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data.calls_by_outcome || {}),
+                datasets: [{
+                    data: Object.values(data.calls_by_outcome || {}),
+                    backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#6366f1', '#8b5cf6', '#64748b'],
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Call Outcomes' } } }
+        });
+
+    } catch (err) {
+        console.error("Chart rendering error:", err);
     }
 }
 

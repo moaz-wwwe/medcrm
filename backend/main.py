@@ -147,6 +147,33 @@ def register_user(
     db.refresh(new_user)
     return new_user
 
+@app.get("/api/analytics")
+def get_analytics(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    logs = db.query(models.CallLog).all()
+    
+    sales_by_rep = {}
+    calls_by_outcome = {}
+    
+    for log in logs:
+        # Calls by outcome
+        out = log.call_result or "Unknown"
+        calls_by_outcome[out] = calls_by_outcome.get(out, 0) + 1
+        
+        # Sales by rep (need to join user or fetch)
+        rep_name = "Unknown"
+        if log.lead and log.lead.assigned_rep:
+            rep_name = log.lead.assigned_rep.full_name or log.lead.assigned_rep.username
+            
+        sales_by_rep[rep_name] = sales_by_rep.get(rep_name, 0.0) + (log.sales_amount or 0.0)
+        
+    return {
+        "sales_by_rep": sales_by_rep,
+        "calls_by_outcome": calls_by_outcome
+    }
+
 
 @app.get("/auth/me", response_model=schemas.UserOut)
 def read_me(current_user: models.User = Depends(auth.get_current_user)):
@@ -444,6 +471,10 @@ def list_leads(
             # Show all leads processed by this rep
             query = query.filter(models.CallLog.id != None)
             limit_val = None
+        elif status == "followups":
+            # Show leads that need follow-up today or earlier
+            query = query.filter(models.Lead.followup_date != None, models.Lead.followup_date <= datetime.utcnow())
+            limit_val = None
     else:
         # admin: sees team's leads
         limit_val = None
@@ -451,6 +482,8 @@ def list_leads(
             query = query.filter(models.CallLog.id == None)
         elif status == "finished":
             query = query.filter(models.CallLog.id != None)
+        elif status == "followups":
+            query = query.filter(models.Lead.followup_date != None, models.Lead.followup_date <= datetime.utcnow())
 
     # Must apply order_by BEFORE limit
     query = query.order_by(models.Lead.created_at.desc())
@@ -513,6 +546,10 @@ def create_call_log(
         notes=payload.notes,
     )
     db.add(log)
+    
+    if payload.next_followup:
+        lead.followup_date = payload.next_followup
+        
     db.commit()
     db.refresh(log)
     

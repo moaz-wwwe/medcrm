@@ -36,6 +36,11 @@
             <div style="display:flex; gap:10px; margin-bottom:20px;">
                 <button class="btn btn-primary" id="btnRepPending" onclick="switchRepTab('pending')" style="flex:1;">العملاء الحاليين</button>
                 <button class="btn btn-secondary" id="btnRepFinished" onclick="switchRepTab('finished')" style="flex:1;">العملاء المنتهيين</button>
+                <button class="btn btn-secondary" id="btnRepFollowups" onclick="switchRepTab('followups')" style="flex:1;">مكالمات اليوم ⏰</button>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <input type="search" id="repSearchInput" class="input" placeholder="بحث بالاسم أو الرقم..." oninput="filterRepLeads()" style="width:100%;">
             </div>
 
             <div class="leads-grid" id="leadsList">
@@ -52,19 +57,36 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                         Upload Leads CSV
                     </button>
+                    <button class="btn btn-secondary" id="exportCsvBtn" onclick="exportAdminLeadsToCsv()" style="background-color: var(--accent-green); color: white;">تصدير البيانات 📥</button>
                     <button class="btn btn-secondary" onclick="openModal('addLeadModal')">Add Lead</button>
                     <button class="btn btn-secondary" onclick="openModal('addUserModal')">Add User</button>
                 </div>
             </div>
 
             <div class="glass-panel" style="margin-bottom: 2rem;">
+                <h3>أداء المبيعات (Analytics)</h3>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px; max-width: 50%;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                    <div style="flex: 1; min-width: 300px; max-width: 50%;">
+                        <canvas id="callsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="margin-bottom: 2rem;">
                 <div class="header-actions">
                     <h3>All System Leads</h3>
-                    <select id="adminLeadsFilter" class="input" style="width:200px; padding:0.5rem;" onchange="fetchAdminData()">
-                        <option value="all">جميع العملاء (All)</option>
-                        <option value="pending">عملاء لم يتم التواصل معهم (Pending)</option>
-                        <option value="finished">عملاء تم الانتهاء منهم (Finished)</option>
-                    </select>
+                    <div style="display:flex; gap:10px;">
+                        <input type="search" id="adminSearchInput" class="input" placeholder="بحث بالاسم أو الرقم..." oninput="filterAdminLeads()" style="width:200px; padding:0.5rem;">
+                        <select id="adminLeadsFilter" class="input" style="width:200px; padding:0.5rem;" onchange="fetchAdminData()">
+                            <option value="all">جميع العملاء (All)</option>
+                            <option value="pending">عملاء لم يتم التواصل معهم (Pending)</option>
+                            <option value="finished">عملاء تم الانتهاء منهم (Finished)</option>
+                            <option value="followups">مكالمات اليوم (Follow-ups)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
@@ -158,7 +180,11 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <input type="number" step="0.01" id="callSales" placeholder="Sales Amount ($) if a deal was closed">
+                    <input type="number" step="0.01" id="callSales" placeholder="Sales Amount ($) if a deal was closed" class="input" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(255, 255, 255, 0.5);">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.9rem; margin-bottom: 4px; display: block;">تاريخ التأجيل (Follow-up Date)</label>
+                    <input type="date" id="callNextFollowup" class="input" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(255, 255, 255, 0.5);">
                 </div>
                 <div class="form-group">
                     <textarea id="callNotes" placeholder="Write your notes here... (Required)" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(255, 255, 255, 0.5); font-family: inherit; resize: vertical; min-height: 80px;"></textarea>
@@ -191,6 +217,7 @@
     </div>
 
     <div id="toast-container" class="toast-container"></div>
-    <script src="app.js?v=5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js?v=6"></script>
 </body>
 </html>
