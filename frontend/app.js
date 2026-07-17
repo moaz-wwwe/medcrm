@@ -337,9 +337,13 @@ async function fetchAdminData() {
         const leadsRes = await fetch(`${API_BASE}/leads/`, { headers: getAuthHeaders() });
         if (leadsRes.ok) {
             const leads = await leadsRes.json();
-            leadsTbody.innerHTML = "";
-            leads.forEach(l => {
-                leadsTbody.innerHTML += `
+            let html = "";
+            
+            // Limit to 200 leads to prevent browser from freezing on huge datasets
+            const displayLeads = leads.slice(0, 200);
+            
+            displayLeads.forEach(l => {
+                html += `
                     <tr>
                         <td>${l.id}</td>
                         <td><strong>${l.name}</strong></td>
@@ -350,15 +354,24 @@ async function fetchAdminData() {
                     </tr>
                 `;
             });
+            
+            if (leads.length > 200) {
+                html += `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-style:italic;">Showing latest 200 of ${leads.length} total leads.</td></tr>`;
+            }
+            
+            leadsTbody.innerHTML = html;
         }
 
         // Fetch Logs
         const logsRes = await fetch(`${API_BASE}/call-logs/`, { headers: getAuthHeaders() });
         if (logsRes.ok) {
             const logs = await logsRes.json();
-            logsTbody.innerHTML = "";
-            logs.forEach(l => {
-                logsTbody.innerHTML += `
+            let html = "";
+            
+            const displayLogs = logs.slice(0, 200);
+            
+            displayLogs.forEach(l => {
+                html += `
                     <tr>
                         <td style="color:var(--text-muted); font-size:0.8rem;">${new Date(l.timestamp).toLocaleString()}</td>
                         <td><strong>${l.rep_username || 'N/A'}</strong></td>
@@ -369,6 +382,12 @@ async function fetchAdminData() {
                     </tr>
                 `;
             });
+            
+            if (logs.length > 200) {
+                html += `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-style:italic;">Showing latest 200 of ${logs.length} logs.</td></tr>`;
+            }
+            
+            logsTbody.innerHTML = html;
         }
     } catch(err) {
         showToast("Error loading admin data", "error");
