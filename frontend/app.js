@@ -85,10 +85,21 @@ function checkAuthAndRole() {
     // based on user request, so they can access the login page manually via the link.
 
     // Show/Hide admin specific elements
+    const mainApp = document.getElementById('mainApp');
+    const adminView = document.getElementById('adminView');
+    const repView = document.getElementById('repView');
+
+    if (mainApp) mainApp.style.display = 'block';
+
     if (role === 'admin') {
         document.querySelectorAll('.admin-only').forEach(el => {
             el.classList.remove('admin-only');
         });
+        if (adminView) adminView.style.display = 'block';
+        if (repView) repView.style.display = 'none';
+    } else {
+        if (adminView) adminView.style.display = 'none';
+        if (repView) repView.style.display = 'block';
     }
 
     // Set Welcome message
