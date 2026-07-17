@@ -537,7 +537,23 @@ window.renderCharts = async function() {
                     borderRadius: 4
                 }]
             },
-            options: { responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Sales by Rep' } } }
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Sales by Rep', color: '#ffffff', font: { size: 16 } }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#e2e8f0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.08)' }
+                    },
+                    y: {
+                        ticks: { color: '#e2e8f0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.08)' }
+                    }
+                }
+            }
         });
 
         callsChartInst = new Chart(callsCtx, {
@@ -547,9 +563,20 @@ window.renderCharts = async function() {
                 datasets: [{
                     data: Object.values(data.calls_by_outcome || {}),
                     backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#6366f1', '#8b5cf6', '#64748b'],
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.1)'
                 }]
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Call Outcomes' } } }
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#e2e8f0', font: { size: 12 } }
+                    },
+                    title: { display: true, text: 'Call Outcomes', color: '#ffffff', font: { size: 16 } }
+                }
+            }
         });
 
     } catch (err) {
