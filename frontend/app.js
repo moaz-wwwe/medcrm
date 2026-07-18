@@ -633,16 +633,16 @@ window.renderCharts = async function() {
                 responsive: true,
                 plugins: {
                     legend: { display: false },
-                    title: { display: true, text: 'Sales by Rep', color: '#ffffff', font: { size: 18, weight: 'bold', family: 'system-ui' } }
+                    title: { display: true, text: 'Sales by Rep', color: '#000000', font: { size: 18, weight: 'bold', family: 'system-ui' } }
                 },
                 scales: {
                     x: {
-                        ticks: { color: '#ffffff', font: { size: 13, weight: '600', family: 'system-ui' } },
-                        grid: { color: 'rgba(255, 255, 255, 0.15)' }
+                        ticks: { color: '#000000', font: { size: 13, weight: '600', family: 'system-ui' } },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' }
                     },
                     y: {
-                        ticks: { color: '#ffffff', font: { size: 13, weight: '600', family: 'system-ui' } },
-                        grid: { color: 'rgba(255, 255, 255, 0.15)' }
+                        ticks: { color: '#000000', font: { size: 13, weight: '600', family: 'system-ui' } },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' }
                     }
                 }
             }
@@ -656,7 +656,7 @@ window.renderCharts = async function() {
                     data: Object.values(data.calls_by_outcome || {}),
                     backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#6366f1', '#8b5cf6', '#64748b'],
                     borderWidth: 2,
-                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                    borderColor: 'rgba(0, 0, 0, 0.1)'
                 }]
             },
             options: {
@@ -664,9 +664,9 @@ window.renderCharts = async function() {
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { color: '#ffffff', font: { size: 14, weight: '600', family: 'system-ui' } }
+                        labels: { color: '#000000', font: { size: 14, weight: '600', family: 'system-ui' } }
                     },
-                    title: { display: true, text: 'Call Outcomes', color: '#ffffff', font: { size: 18, weight: 'bold', family: 'system-ui' } }
+                    title: { display: true, text: 'Call Outcomes', color: '#000000', font: { size: 18, weight: 'bold', family: 'system-ui' } }
                 }
             }
         });
