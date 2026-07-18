@@ -108,6 +108,8 @@ class LeadOut(BaseModel):
     assigned_to: int
     assigned_rep_username: Optional[str] = None
     latest_call_log: Optional[CallLogOut] = None
+    is_ignored: bool = False
+    ignore_reason: Optional[str] = None
 
     @computed_field
     @property
@@ -142,6 +144,9 @@ class LeadUpdate(BaseModel):
     sales_amount: Optional[float] = 0.0
     call_notes: Optional[str] = None
     next_followup: Optional[datetime] = None
+    is_ignored: Optional[bool] = None
+    ignore_reason: Optional[str] = None
+    assigned_to: Optional[int] = None
 
     @field_validator("phone")
     @classmethod

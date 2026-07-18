@@ -53,6 +53,8 @@ class Lead(Base):
     notes = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     followup_date = Column(DateTime, nullable=True)
+    is_ignored = Column(Boolean, default=False, nullable=False)
+    ignore_reason = Column(String, nullable=True)
 
     # FK -> User.id. This is the core of the row-level access control:
     # sales_rep users may only ever see/create leads where assigned_to == their own id.

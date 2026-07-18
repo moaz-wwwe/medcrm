@@ -77,6 +77,7 @@
                     <option value="pending">عملاء لم يتم التواصل معهم (Pending)</option>
                     <option value="finished">عملاء تم الانتهاء منهم (Finished)</option>
                     <option value="followups">مكالمات اليوم (Follow-ups)</option>
+                    <option value="ignored">عملاء متجاهلين (Ignored)</option>
                 </select>
                 <input type="file" id="csvFileInput" accept=".csv, .xlsx" style="display:none;">
                 <button id="uploadCsvBtn" class="btn btn-secondary" style="font-size:0.85rem; height: 38px; display: flex; align-items: center; gap: 4px;">
@@ -104,7 +105,9 @@
                         <th>Facility</th>
                         <th>Phone</th>
                         <th>Rep</th>
+                        <th>Status</th>
                         <th>Date</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="adminLeadsTable">
@@ -186,6 +189,6 @@
 
     <div id="toast-container" class="toast-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
 </body>
 </html>

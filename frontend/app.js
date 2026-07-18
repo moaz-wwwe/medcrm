@@ -239,9 +239,12 @@ async function fetchLeads() {
                             <span>Rep: ${lead.assigned_rep_username || 'N/A'}</span>
                         </div>
                     </div>
-                    <button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">
-                        ${lead.latest_call_log ? 'تعديل النتيجة' : 'تسجيل النتيجة'}
-                    </button>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">
+                            ${lead.latest_call_log ? 'تعديل النتيجة' : 'تسجيل النتيجة'}
+                        </button>
+                        ${!lead.latest_call_log ? `<button onclick="ignoreLead(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem; background-color:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2);">تخطي 🚫</button>` : ''}
+                    </div>
                 </div>
                 <p style="font-size:0.875rem; margin-bottom:0;"><strong>Phone:</strong> ${lead.phone}</p>
                 <p style="font-size:0.875rem;"><strong>Notes:</strong> ${lead.notes || 'No notes'}</p>
@@ -325,6 +328,73 @@ if (addLeadForm) {
 }
 
 // Log Activity Logic
+// Ignore Lead Logic (Skip)
+window.ignoreLead = async function(leadId) {
+    const reason = prompt("ما هو سبب تجاهل / تخطي هذا العميل؟ (مطلوب للتحويل للمدير):");
+    if (!reason || !reason.trim()) {
+        showToast("يجب إدخال سبب التخطي", "error");
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/leads/${leadId}`, {
+            method: "PUT",
+            headers: {
+                ...getAuthHeaders(),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                is_ignored: true,
+                ignore_reason: reason.trim()
+            })
+        });
+        
+        if (res.ok) {
+            showToast("تم تخطي العميل وإرسال إشعار للمدير بنجاح!");
+            fetchLeads();
+        } else {
+            const data = await res.json();
+            showToast(data.detail || "فشل تخطي العميل", "error");
+        }
+    } catch (err) {
+        showToast("خطأ في الاتصال بالسيرفر", "error");
+    }
+}
+
+// Reassign Lead Logic (Admin)
+window.reassignLead = async function(leadId) {
+    const repIdStr = prompt("أدخل الرقم التعريفي (ID) للمندوب الجديد لنقل العميل إليه:");
+    if (!repIdStr || !repIdStr.trim()) return;
+    const repId = parseInt(repIdStr);
+    if (isNaN(repId)) {
+        showToast("رقم المندوب غير صالح", "error");
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/leads/${leadId}`, {
+            method: "PUT",
+            headers: {
+                ...getAuthHeaders(),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                assigned_to: repId
+            })
+        });
+        
+        if (res.ok) {
+            showToast("تم إعادة تعيين العميل بنجاح ونقله للمندوب الجديد!");
+            fetchAdminData();
+        } else {
+            const data = await res.json();
+            showToast(data.detail || "فشل إعادة تعيين العميل", "error");
+        }
+    } catch (err) {
+        showToast("خطأ في الاتصال بالسيرفر", "error");
+    }
+}
+
 // Show/hide Sales and Follow-up based on outcome selection
 window.toggleSalesAmount = function() {
     const result = document.getElementById("callResult").value;
@@ -490,6 +560,10 @@ window.fetchAdminData = async function() {
             const displayLeads = leads.slice(0, 200);
             
             displayLeads.forEach(l => {
+                const statusBadge = l.is_ignored 
+                    ? `<span class="badge" style="background-color: #ef4444; color: white;">متجاهل: ${l.ignore_reason}</span>`
+                    : `<span class="badge new">${l.facility_type || 'N/A'}</span>`;
+                    
                 html += `
                     <tr>
                         <td>${l.id || '-'}</td>
@@ -497,11 +571,13 @@ window.fetchAdminData = async function() {
                         <td><span class="badge new">${l.facility_type || 'N/A'}</span></td>
                         <td>${l.phone || 'N/A'}</td>
                         <td>${l.assigned_rep_username || 'N/A'}</td>
+                        <td>${statusBadge}</td>
                         <td style="color:var(--text-muted); font-size:0.8rem;">${l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</td>
                         <td>
                             <div style="display:flex; gap:5px;">
                                 <a href="${l.call_link || 'tel:' + l.phone}" class="action-btn call" style="padding:4px 8px; font-size:0.75rem; border-radius:4px; text-decoration:none;">Call</a>
                                 <a href="${l.whatsapp_link}" target="_blank" class="action-btn whatsapp" style="padding:4px 8px; font-size:0.75rem; border-radius:4px; text-decoration:none;">WhatsApp</a>
+                                ${l.is_ignored ? `<button onclick="reassignLead(${l.id})" class="action-btn call" style="padding:4px 8px; font-size:0.75rem; border-radius:4px; background-color: var(--accent-purple); border:none; color:white; cursor:pointer;">إعادة تعيين 🔄</button>` : ''}
                             </div>
                         </td>
                     </tr>

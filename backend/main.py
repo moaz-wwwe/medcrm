@@ -178,9 +178,15 @@ def get_analytics(current_user: models.User = Depends(auth.get_current_user), db
 def run_db_migration(db: Session = Depends(get_db)):
     try:
         from sqlalchemy import text
-        # Specifically use TIMESTAMP for postgres, DATETIME for sqlite. We can use TIMESTAMP for both.
-        # But wait, we can just do sqlalchemy's generic "TIMESTAMP"
         db.execute(text("ALTER TABLE leads ADD COLUMN followup_date TIMESTAMP;"))
+        db.commit()
+    except Exception:
+        pass
+        
+    try:
+        from sqlalchemy import text
+        db.execute(text("ALTER TABLE leads ADD COLUMN is_ignored BOOLEAN DEFAULT FALSE;"))
+        db.execute(text("ALTER TABLE leads ADD COLUMN ignore_reason VARCHAR;"))
         db.commit()
         return {"status": "success", "message": "Migration completed successfully."}
     except Exception as e:
@@ -515,8 +521,8 @@ def list_leads(
     if current_user.role == models.UserRole.SALES_REP:
         query = query.filter(models.Lead.assigned_to == current_user.id)
         if status == "pending" or status == "all":
-            # Queue System: Only show 10 leads that have NOT been processed (no call logs)
-            query = query.filter(models.CallLog.id == None)
+            # Queue System: Only show 10 leads that have NOT been processed (no call logs) and not ignored
+            query = query.filter(models.CallLog.id == None, models.Lead.is_ignored == False)
             limit_val = 10
         elif status == "finished":
             # Show all leads processed by this rep
@@ -530,11 +536,13 @@ def list_leads(
         # admin: sees team's leads
         limit_val = None
         if status == "pending":
-            query = query.filter(models.CallLog.id == None)
+            query = query.filter(models.CallLog.id == None, models.Lead.is_ignored == False)
         elif status == "finished":
             query = query.filter(models.CallLog.id != None)
         elif status == "followups":
             query = query.filter(models.Lead.followup_date != None, models.Lead.followup_date <= datetime.utcnow())
+        elif status == "ignored":
+            query = query.filter(models.Lead.is_ignored == True)
 
     # Must apply order_by BEFORE limit
     query = query.order_by(models.Lead.created_at.desc())
@@ -585,6 +593,15 @@ def update_lead(
         lead.notes = payload.notes
     if payload.next_followup is not None:
         lead.followup_date = payload.next_followup
+    if payload.is_ignored is not None:
+        lead.is_ignored = payload.is_ignored
+    if payload.ignore_reason is not None:
+        lead.ignore_reason = payload.ignore_reason
+    if payload.assigned_to is not None:
+        lead.assigned_to = payload.assigned_to
+        # If reassigned to someone else, reset ignored status!
+        lead.is_ignored = False
+        lead.ignore_reason = None
 
     # If call_result is provided, we edit/create the latest call log
     if payload.call_result is not None:
@@ -616,12 +633,22 @@ def update_lead(
     
     # Send Telegram Notification
     rep_name = current_user.full_name or current_user.username
-    msg = (
-        f"✏️ <b>Lead Updated!</b>\n\n"
-        f"👤 <b>Lead:</b> {lead.name}\n"
-        f"📊 <b>Outcome:</b> {payload.call_result or 'N/A'}\n"
-        f"👤 <b>Updated By:</b> {rep_name}"
-    )
+    if payload.is_ignored == True:
+        msg = (
+            f"🚫 <b>تم تخطي / تجاهل عميل!</b>\n\n"
+            f"👤 <b>العميل:</b> {lead.name}\n"
+            f"📞 <b>التليفون:</b> {lead.phone}\n"
+            f"📝 <b>السبب:</b> {payload.ignore_reason or 'بدون سبب'}\n"
+            f"👤 <b>بواسطة المندوب:</b> {rep_name}\n\n"
+            f"💡 <i>يمكن للمدير مراجعة العميل في لوحة التحكم وتغيير المندوب أو حذفه.</i>"
+        )
+    else:
+        msg = (
+            f"✏️ <b>Lead Updated!</b>\n\n"
+            f"👤 <b>Lead:</b> {lead.name}\n"
+            f"📊 <b>Outcome:</b> {payload.call_result or 'N/A'}\n"
+            f"👤 <b>Updated By:</b> {rep_name}"
+        )
     send_telegram_notification(msg)
     
     return _lead_to_out(lead)
