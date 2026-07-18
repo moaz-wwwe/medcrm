@@ -50,6 +50,31 @@ class TokenData(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# CallLog
+# ---------------------------------------------------------------------------
+
+class CallLogCreate(BaseModel):
+    lead_id: int
+    call_result: str
+    sales_amount: float = 0.0
+    notes: Optional[str] = None
+    next_followup: Optional[datetime] = None
+
+
+class CallLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    lead_id: int
+    call_result: str
+    sales_amount: float
+    notes: Optional[str] = None
+    timestamp: datetime
+    lead_name: Optional[str] = None
+    rep_username: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
 # Lead
 # ---------------------------------------------------------------------------
 
@@ -82,6 +107,7 @@ class LeadOut(BaseModel):
     followup_date: Optional[datetime] = None
     assigned_to: int
     assigned_rep_username: Optional[str] = None
+    latest_call_log: Optional[CallLogOut] = None
 
     @computed_field
     @property
@@ -107,29 +133,24 @@ class LeadOut(BaseModel):
         return f"tel:{digits}"
 
 
-# ---------------------------------------------------------------------------
-# CallLog
-# ---------------------------------------------------------------------------
-
-class CallLogCreate(BaseModel):
-    lead_id: int
-    call_result: str
-    sales_amount: float = 0.0
+class LeadUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    facility_type: Optional[str] = None
     notes: Optional[str] = None
+    call_result: Optional[str] = None
+    sales_amount: Optional[float] = 0.0
+    call_notes: Optional[str] = None
     next_followup: Optional[datetime] = None
 
-
-class CallLogOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    lead_id: int
-    call_result: str
-    sales_amount: float
-    notes: Optional[str] = None
-    timestamp: datetime
-    lead_name: Optional[str] = None
-    rep_username: Optional[str] = None
+    @field_validator("phone")
+    @classmethod
+    def clean_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        if not re.sub(r"\D", "", v):
+            raise ValueError("phone must contain digits")
+        return v.strip()
 
 
 # ---------------------------------------------------------------------------

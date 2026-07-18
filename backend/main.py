@@ -198,6 +198,15 @@ def read_me(current_user: models.User = Depends(auth.get_current_user)):
 def _lead_to_out(lead: models.Lead) -> schemas.LeadOut:
     out = schemas.LeadOut.model_validate(lead)
     out.assigned_rep_username = lead.assigned_rep.username if lead.assigned_rep else None
+    
+    # Attach latest call log
+    if lead.call_logs:
+        # Sort logs by timestamp desc
+        sorted_logs = sorted(lead.call_logs, key=lambda x: x.timestamp, reverse=True)
+        out.latest_call_log = _calllog_to_out(sorted_logs[0])
+    else:
+        out.latest_call_log = None
+        
     return out
 
 
@@ -516,6 +525,74 @@ def get_lead(
         raise HTTPException(status_code=404, detail="Lead not found")
     if current_user.role == models.UserRole.SALES_REP and lead.assigned_to != current_user.id:
         raise HTTPException(status_code=403, detail="You do not have access to this lead")
+    return _lead_to_out(lead)
+
+
+@app.put("/leads/{lead_id}", response_model=schemas.LeadOut)
+def update_lead(
+    lead_id: int,
+    payload: schemas.LeadUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # RBAC check
+    if current_user.role == models.UserRole.SALES_REP and lead.assigned_to != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have access to this lead")
+
+    # Update Lead attributes
+    if payload.name is not None:
+        lead.name = payload.name
+    if payload.phone is not None:
+        lead.phone = payload.phone
+    if payload.facility_type is not None:
+        lead.facility_type = payload.facility_type
+    if payload.notes is not None:
+        lead.notes = payload.notes
+    if payload.next_followup is not None:
+        lead.followup_date = payload.next_followup
+
+    # If call_result is provided, we edit/create the latest call log
+    if payload.call_result is not None:
+        # Find latest call log
+        latest_log = db.query(models.CallLog).filter(models.CallLog.lead_id == lead_id).order_by(models.CallLog.timestamp.desc()).first()
+        if latest_log:
+            # Update existing log
+            latest_log.call_result = payload.call_result
+            if payload.sales_amount is not None:
+                latest_log.sales_amount = payload.sales_amount
+            if payload.call_notes is not None:
+                latest_log.notes = payload.call_notes
+            if payload.next_followup is not None:
+                lead.followup_date = payload.next_followup
+        else:
+            # Create a new log
+            new_log = models.CallLog(
+                lead_id=lead_id,
+                call_result=payload.call_result,
+                sales_amount=payload.sales_amount or 0.0,
+                notes=payload.call_notes or ""
+            )
+            db.add(new_log)
+            if payload.next_followup is not None:
+                lead.followup_date = payload.next_followup
+
+    db.commit()
+    db.refresh(lead)
+    
+    # Send Telegram Notification
+    rep_name = current_user.full_name or current_user.username
+    msg = (
+        f"✏️ <b>Lead Updated!</b>\n\n"
+        f"👤 <b>Lead:</b> {lead.name}\n"
+        f"📊 <b>Outcome:</b> {payload.call_result or 'N/A'}\n"
+        f"👤 <b>Updated By:</b> {rep_name}"
+    )
+    send_telegram_notification(msg)
+    
     return _lead_to_out(lead)
 
 

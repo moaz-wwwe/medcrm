@@ -239,7 +239,9 @@ async function fetchLeads() {
                             <span>Rep: ${lead.assigned_rep_username || 'N/A'}</span>
                         </div>
                     </div>
-                    ${currentRepTab === 'pending' ? `<button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">تسجيل النتيجة</button>` : ''}
+                    <button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">
+                        ${lead.latest_call_log ? 'تعديل النتيجة' : 'تسجيل النتيجة'}
+                    </button>
                 </div>
                 <p style="font-size:0.875rem; margin-bottom:0;"><strong>Phone:</strong> ${lead.phone}</p>
                 <p style="font-size:0.875rem;"><strong>Notes:</strong> ${lead.notes || 'No notes'}</p>
@@ -254,7 +256,6 @@ async function fetchLeads() {
                     </a>
                 </div>
             `;
-            leadsList.appendChild(card);
             leadsList.appendChild(card);
         });
         
@@ -324,8 +325,75 @@ if (addLeadForm) {
 }
 
 // Log Activity Logic
-window.prepareLogActivity = function(leadId) {
+// Show/hide Sales and Follow-up based on outcome selection
+window.toggleSalesAmount = function() {
+    const result = document.getElementById("callResult").value;
+    const salesGroup = document.getElementById("callSalesGroup");
+    const followupGroup = document.getElementById("callFollowupGroup");
+    
+    if (salesGroup) {
+        if (result === "تم الاتصال - مهتم") {
+            salesGroup.style.display = "block";
+        } else {
+            salesGroup.style.display = "none";
+        }
+    }
+    
+    if (followupGroup) {
+        if (result === "تم الاتصال - مهتم" || result === "لم يرد" || result === "تم الإرسال واتساب") {
+            followupGroup.style.display = "block";
+        } else {
+            followupGroup.style.display = "none";
+        }
+    }
+}
+
+// Log/Edit Activity Logic
+window.prepareLogActivity = async function(leadId) {
     document.getElementById("callLeadId").value = leadId;
+    
+    // Reset modal fields first
+    document.getElementById("callLeadName").value = "";
+    document.getElementById("callLeadPhone").value = "";
+    document.getElementById("callLeadFacility").value = "";
+    document.getElementById("callLeadNotes").value = "";
+    document.getElementById("callResult").value = "";
+    document.getElementById("callSales").value = "";
+    document.getElementById("callNotes").value = "";
+    document.getElementById("callNextFollowup").value = "";
+    document.getElementById("callSalesGroup").style.display = "none";
+    document.getElementById("callFollowupGroup").style.display = "none";
+
+    try {
+        const res = await fetch(`${API_BASE}/leads/${leadId}`, { headers: getAuthHeaders() });
+        if (res.ok) {
+            const lead = await res.json();
+            
+            // Populate lead details
+            document.getElementById("callLeadName").value = lead.name || "";
+            document.getElementById("callLeadPhone").value = lead.phone || "";
+            document.getElementById("callLeadFacility").value = lead.facility_type || "";
+            document.getElementById("callLeadNotes").value = lead.notes || "";
+            
+            // Populate latest call log if it exists
+            if (lead.latest_call_log) {
+                document.getElementById("callResult").value = lead.latest_call_log.call_result || "";
+                document.getElementById("callSales").value = lead.latest_call_log.sales_amount || "";
+                document.getElementById("callNotes").value = lead.latest_call_log.notes || "";
+                
+                // Trigger toggle UI
+                toggleSalesAmount();
+            }
+            
+            // Populate followup date
+            if (lead.followup_date) {
+                document.getElementById("callNextFollowup").value = lead.followup_date.split("T")[0];
+            }
+        }
+    } catch (err) {
+        console.error("Failed to fetch lead for editing:", err);
+    }
+    
     openModal('callLogModal');
 }
 
@@ -333,17 +401,22 @@ const addLogForm = document.getElementById("callLogForm");
 if (addLogForm) {
     addLogForm.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const leadId = parseInt(document.getElementById("callLeadId").value);
+        
         const payload = {
-            lead_id: parseInt(document.getElementById("callLeadId").value),
+            name: document.getElementById("callLeadName").value.trim(),
+            phone: document.getElementById("callLeadPhone").value.trim(),
+            facility_type: document.getElementById("callLeadFacility").value.trim(),
+            notes: document.getElementById("callLeadNotes").value.trim(),
             call_result: document.getElementById("callResult").value,
             sales_amount: parseFloat(document.getElementById("callSales").value) || 0.0,
-            notes: document.getElementById("callNotes").value,
+            call_notes: document.getElementById("callNotes").value.trim(),
             next_followup: document.getElementById("callNextFollowup")?.value ? document.getElementById("callNextFollowup").value + "T00:00:00Z" : null
         };
 
         try {
-            const res = await fetch(`${API_BASE}/call-logs/`, {
-                method: "POST",
+            const res = await fetch(`${API_BASE}/leads/${leadId}`, {
+                method: "PUT",
                 headers: {
                     ...getAuthHeaders(),
                     "Content-Type": "application/json"
@@ -351,10 +424,10 @@ if (addLogForm) {
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                showToast("Lead processed successfully!");
+                showToast("تم تحديث البيانات والنتيجة بنجاح!");
                 closeModal('callLogModal');
                 
-                // Refresh leads queue to remove the processed lead and pull a new one
+                // Refresh leads queue
                 fetchLeads();
                 
                 // Also refresh recent activity if on dashboard
@@ -366,7 +439,7 @@ if (addLogForm) {
                 if(document.getElementById('adminLogsTable')) fetchAdminData();
             } else {
                 const data = await res.json();
-                showToast(data.detail || "Error logging activity", "error");
+                showToast(data.detail || "حدث خطأ أثناء تعديل البيانات", "error");
             }
         } catch (error) {
             showToast("Network error", "error");
