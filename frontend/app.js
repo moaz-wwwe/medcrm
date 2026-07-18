@@ -348,9 +348,21 @@ window.toggleSalesAmount = function() {
     }
 }
 
+// Show edit inputs for lead info
+window.showLeadEditFields = function() {
+    document.getElementById("leadInfoDisplay").style.display = "none";
+    document.getElementById("leadEditFields").style.display = "block";
+}
+
 // Log/Edit Activity Logic
 window.prepareLogActivity = async function(leadId) {
     document.getElementById("callLeadId").value = leadId;
+    
+    // Reset display fields
+    document.getElementById("dispLeadName").innerText = "";
+    document.getElementById("dispLeadPhone").innerText = "";
+    document.getElementById("dispLeadFacility").innerText = "";
+    document.getElementById("dispLeadNotes").innerText = "";
     
     // Reset modal fields first
     document.getElementById("callLeadName").value = "";
@@ -363,13 +375,23 @@ window.prepareLogActivity = async function(leadId) {
     document.getElementById("callNextFollowup").value = "";
     document.getElementById("callSalesGroup").style.display = "none";
     document.getElementById("callFollowupGroup").style.display = "none";
+    
+    // Set to display mode by default
+    document.getElementById("leadInfoDisplay").style.display = "block";
+    document.getElementById("leadEditFields").style.display = "none";
 
     try {
         const res = await fetch(`${API_BASE}/leads/${leadId}`, { headers: getAuthHeaders() });
         if (res.ok) {
             const lead = await res.json();
             
-            // Populate lead details
+            // Populate display fields
+            document.getElementById("dispLeadName").innerText = lead.name || "";
+            document.getElementById("dispLeadPhone").innerText = lead.phone || "";
+            document.getElementById("dispLeadFacility").innerText = lead.facility_type || "";
+            document.getElementById("dispLeadNotes").innerText = lead.notes || "لا توجد ملاحظات";
+
+            // Populate lead details (inputs)
             document.getElementById("callLeadName").value = lead.name || "";
             document.getElementById("callLeadPhone").value = lead.phone || "";
             document.getElementById("callLeadFacility").value = lead.facility_type || "";
