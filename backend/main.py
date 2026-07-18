@@ -186,6 +186,20 @@ def run_db_migration(db: Session = Depends(get_db)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.post("/leads/clear-pending")
+def clear_pending_leads(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    try:
+        # Delete leads that have NO call logs
+        subquery = db.query(models.CallLog.lead_id).subquery()
+        deleted_count = db.query(models.Lead).filter(models.Lead.id.not_in(subquery)).delete(synchronize_session=False)
+        db.commit()
+        return {"status": "success", "message": f"Successfully deleted {deleted_count} pending leads."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/auth/me", response_model=schemas.UserOut)
 def read_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user

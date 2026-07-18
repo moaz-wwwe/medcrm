@@ -587,6 +587,37 @@ window.exportAdminLeadsToCsv = function() {
     document.body.removeChild(link);
 }
 
+// Clear Pending Leads
+window.clearPendingLeads = async function() {
+    if (!confirm("هل أنت متأكد من مسح جميع العملاء المعلقين (الذين لم يتم التواصل معهم)؟\nهذا الإجراء سيفرغ قائمة الانتظار للمندوبين، لكنه سيحافظ على كل العملاء والمكالمات والمبيعات التي تمت بالكامل.")) {
+        return;
+    }
+    
+    const btn = document.getElementById("clearPendingBtn");
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "جاري المسح...";
+    btn.disabled = true;
+    
+    try {
+        const res = await fetch(`${API_BASE}/leads/clear-pending`, {
+            method: "POST",
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || "تم مسح العملاء المعلقين بنجاح!");
+            fetchAdminData(); // Refresh tables & charts
+        } else {
+            showToast(data.detail || "فشل مسح العملاء", "error");
+        }
+    } catch (err) {
+        showToast("خطأ في الاتصال بالسيرفر", "error");
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
 // Render Analytics Charts
 let salesChartInst = null;
 let callsChartInst = null;
