@@ -592,14 +592,26 @@ let salesChartInst = null;
 let callsChartInst = null;
 window.renderCharts = async function() {
     try {
+        if (typeof Chart === 'undefined') {
+            showToast("خطأ: لم يتم تحميل مكتبة الرسومات البيانية. جاري المحاولة مرة أخرى...", "error");
+            return;
+        }
+        
         const res = await fetch(`${API_BASE}/api/analytics`, { headers: getAuthHeaders() });
-        if (!res.ok) return;
+        if (!res.ok) {
+            const errText = await res.text();
+            showToast(`فشل تحميل التحليلات: ${res.status} - ${errText}`, "error");
+            return;
+        }
         const data = await res.json();
         
         const salesCtx = document.getElementById('salesChart')?.getContext('2d');
         const callsCtx = document.getElementById('callsChart')?.getContext('2d');
         
-        if (!salesCtx || !callsCtx || typeof Chart === 'undefined') return;
+        if (!salesCtx || !callsCtx) {
+            console.warn("Canvas elements for charts not found in current DOM.");
+            return;
+        }
 
         if (salesChartInst) salesChartInst.destroy();
         if (callsChartInst) callsChartInst.destroy();
