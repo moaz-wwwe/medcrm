@@ -176,21 +176,27 @@ def get_analytics(current_user: models.User = Depends(auth.get_current_user), db
 
 @app.get("/api/migrate-db")
 def run_db_migration(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    
     try:
-        from sqlalchemy import text
         db.execute(text("ALTER TABLE leads ADD COLUMN followup_date TIMESTAMP;"))
         db.commit()
     except Exception:
-        pass
+        db.rollback()
         
     try:
-        from sqlalchemy import text
         db.execute(text("ALTER TABLE leads ADD COLUMN is_ignored BOOLEAN DEFAULT FALSE;"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    try:
         db.execute(text("ALTER TABLE leads ADD COLUMN ignore_reason VARCHAR;"))
         db.commit()
-        return {"status": "success", "message": "Migration completed successfully."}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception:
+        db.rollback()
+
+    return {"status": "success", "message": "Migration completed successfully."}
 
 @app.post("/leads/clear-pending")
 def clear_pending_leads(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
