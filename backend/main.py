@@ -200,6 +200,23 @@ def clear_pending_leads(db: Session = Depends(get_db), current_user: models.User
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/db-count")
+def get_db_count(db: Session = Depends(get_db)):
+    try:
+        from models import Lead, CallLog
+        total_leads = db.query(Lead).count()
+        pending_leads = db.query(Lead).outerjoin(CallLog).filter(CallLog.id == None).count()
+        called_leads = total_leads - pending_leads
+        total_logs = db.query(CallLog).count()
+        return {
+            "total_leads": total_leads,
+            "pending_leads": pending_leads,
+            "called_leads": called_leads,
+            "total_call_logs": total_logs
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/auth/me", response_model=schemas.UserOut)
 def read_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
