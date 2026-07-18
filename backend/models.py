@@ -20,6 +20,7 @@ from sqlalchemy import (
     ForeignKey,
     DateTime,
     Enum as SAEnum,
+    Boolean,
 )
 from sqlalchemy.orm import relationship
 
