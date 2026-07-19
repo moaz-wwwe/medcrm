@@ -984,10 +984,14 @@ if (aiChatForm) {
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
-    if (document.getElementById("leadsList")) {
-        fetchLeads();
-    }
-    if (document.getElementById("adminLeadsTable")) {
-        fetchAdminData();
+    const role = localStorage.getItem('role');
+    if (role === 'admin') {
+        if (document.getElementById("adminLeadsTable")) {
+            fetchAdminData();
+        }
+    } else {
+        if (document.getElementById("leadsList")) {
+            fetchLeads();
+        }
     }
 });
