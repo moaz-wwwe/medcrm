@@ -552,6 +552,11 @@ window.fetchAdminData = async function() {
         // Fetch Leads
         const statusFilter = document.getElementById("adminLeadsFilter") ? document.getElementById("adminLeadsFilter").value : "all";
         const leadsRes = await fetch(`${API_BASE}/leads/?status=${statusFilter}`, { headers: getAuthHeaders() });
+        if (leadsRes.status === 401) {
+            localStorage.clear();
+            window.location.href = "index.html";
+            return;
+        }
         if (leadsRes.ok) {
             const leads = await leadsRes.json();
             let html = "";
@@ -727,6 +732,11 @@ window.renderCharts = async function() {
         }
         
         const res = await fetch(`${API_BASE}/api/analytics`, { headers: getAuthHeaders() });
+        if (res.status === 401) {
+            localStorage.clear();
+            window.location.href = "index.html";
+            return;
+        }
         if (!res.ok) {
             const errText = await res.text();
             showToast(`فشل تحميل التحليلات: ${res.status} - ${errText}`, "error");
