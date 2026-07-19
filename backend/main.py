@@ -371,6 +371,10 @@ async def bulk_upload_leads(
                 norm_row[clean_k] = v
             normalized_rows.append(norm_row)
 
+        # Shuffle rows to randomize lead distribution
+        import random
+        random.shuffle(normalized_rows)
+
         # Get all sales reps to distribute
         reps = db.query(models.User).filter(models.User.role == models.UserRole.SALES_REP).all()
         if not reps:
@@ -538,6 +542,9 @@ def list_leads(
             # Show leads that need follow-up today or earlier
             query = query.filter(models.Lead.followup_date != None, models.Lead.followup_date <= datetime.utcnow())
             limit_val = None
+        elif status in ["تم الاتصال - مهتم", "تم الاتصال - غير مهتم", "لم يرد", "تم الإرسال واتساب", "رقم خاطئ"]:
+            query = query.filter(models.CallLog.call_result == status)
+            limit_val = None
     else:
         # admin: sees team's leads
         limit_val = None
@@ -549,6 +556,8 @@ def list_leads(
             query = query.filter(models.Lead.followup_date != None, models.Lead.followup_date <= datetime.utcnow())
         elif status == "ignored":
             query = query.filter(models.Lead.is_ignored == True)
+        elif status in ["تم الاتصال - مهتم", "تم الاتصال - غير مهتم", "لم يرد", "تم الإرسال واتساب", "رقم خاطئ"]:
+            query = query.filter(models.CallLog.call_result == status)
 
     # Must apply order_by BEFORE limit
     query = query.order_by(models.Lead.created_at.desc())

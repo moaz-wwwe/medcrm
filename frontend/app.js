@@ -197,6 +197,32 @@ window.switchRepTab = function(tabName) {
     if (followupsBtn) {
         followupsBtn.className = (tabName === 'followups') ? "btn btn-primary" : "btn btn-secondary";
     }
+    
+    // Reset outcome filter dropdown
+    const outcomeSelect = document.getElementById("repOutcomeFilter");
+    if (outcomeSelect) {
+        outcomeSelect.value = "all";
+    }
+    fetchLeads();
+}
+
+window.filterRepLeadsByOutcome = function() {
+    const outcomeSelect = document.getElementById("repOutcomeFilter");
+    if (!outcomeSelect) return;
+    const outcome = outcomeSelect.value;
+    if (outcome === "all") {
+        switchRepTab('finished');
+        return;
+    }
+    
+    currentRepTab = outcome;
+    // Deactivate all tab buttons
+    document.getElementById('btnRepPending').className = "btn btn-secondary";
+    document.getElementById('btnRepFinished').className = "btn btn-secondary";
+    const followupsBtn = document.getElementById('btnRepFollowups');
+    if (followupsBtn) {
+        followupsBtn.className = "btn btn-secondary";
+    }
     fetchLeads();
 }
 

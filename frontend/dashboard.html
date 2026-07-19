@@ -39,8 +39,16 @@
                 <button class="btn btn-secondary" id="btnRepFollowups" onclick="switchRepTab('followups')" style="flex:1;">مكالمات اليوم ⏰</button>
             </div>
 
-            <div style="margin-bottom:20px;">
-                <input type="search" id="repSearchInput" class="input" placeholder="بحث بالاسم أو الرقم..." oninput="filterRepLeads()" style="width:100%;">
+            <div style="margin-bottom:20px; display:flex; gap:10px;">
+                <input type="search" id="repSearchInput" class="input" placeholder="بحث بالاسم أو الرقم..." oninput="filterRepLeads()" style="flex:2;">
+                <select id="repOutcomeFilter" class="input" onchange="filterRepLeadsByOutcome()" style="flex:1; padding:0.5rem; height: 38px;">
+                    <option value="all">فلترة النتيجة (الكل)</option>
+                    <option value="تم الاتصال - مهتم">مهتم 👍</option>
+                    <option value="تم الاتصال - غير مهتم">غير مهتم 👎</option>
+                    <option value="لم يرد">لم يرد 📵</option>
+                    <option value="تم الإرسال واتساب">تم الإرسال واتساب 💬</option>
+                    <option value="رقم خاطئ">رقم خاطئ ❌</option>
+                </select>
             </div>
 
             <div class="leads-grid" id="leadsList">
@@ -246,6 +254,6 @@
 
     <div id="toast-container" class="toast-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=15"></script>
+    <script src="app.js?v=16"></script>
 </body>
 </html>
