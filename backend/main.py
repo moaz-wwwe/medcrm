@@ -255,30 +255,36 @@ def export_rep_activity_excel(
             rep_username = lead.assigned_rep.username
             
         events.append({
+            "lead_id": lead.id if lead else "N/A",
             "rep": rep_username,
-            "date": log.timestamp.strftime("%Y-%m-%d") if log.timestamp else "N/A",
+            "date": log.timestamp.strftime("%Y-%m-%d %H:%M:%S") if log.timestamp else "N/A",
             "lead_name": lead.name if lead else "N/A",
             "lead_phone": lead.phone if lead else "N/A",
             "facility_type": lead.facility_type if lead else "N/A",
-            "action_type": "اتصال",
+            "lead_notes": lead.notes if lead else "لا يوجد",
+            "action_type": "مكالمة",
             "outcome": log.call_result or "N/A",
             "sales_amount": float(log.sales_amount or 0.0),
-            "notes": log.notes or "N/A"
+            "rep_notes": log.notes or "لا يوجد",
+            "followup": lead.followup_date.strftime("%Y-%m-%d") if (lead and lead.followup_date) else "لا يوجد"
         })
         
     # Process ignored leads
     for lead in ignored_leads:
         rep_username = lead.assigned_rep.username if lead.assigned_rep else "N/A"
         events.append({
+            "lead_id": lead.id,
             "rep": rep_username,
-            "date": lead.created_at.strftime("%Y-%m-%d") if lead.created_at else "N/A",
+            "date": lead.created_at.strftime("%Y-%m-%d %H:%M:%S") if lead.created_at else "N/A",
             "lead_name": lead.name,
             "lead_phone": lead.phone,
             "facility_type": lead.facility_type,
+            "lead_notes": lead.notes or "لا يوجد",
             "action_type": "تجاهل",
             "outcome": lead.ignore_reason or "N/A",
             "sales_amount": 0.0,
-            "notes": lead.notes or "N/A"
+            "rep_notes": lead.ignore_reason or "لا يوجد",
+            "followup": "لا يوجد"
         })
 
     # 4. Generate daily summary data
@@ -364,7 +370,20 @@ def export_rep_activity_excel(
     ws2 = wb.create_sheet(title="سجل النشاط التفصيلي")
     ws2.views.sheetView[0].showGridLines = True
     
-    headers2 = ["المندوب", "التاريخ", "اسم العميل", "رقم التليفون", "نوع المنشأة", "نوع الإجراء", "النتيجة / سبب التجاهل", "المبيعات", "ملاحظات"]
+    headers2 = [
+        "كود العميل (ID)", 
+        "المندوب", 
+        "تاريخ ووقت الإجراء", 
+        "اسم العميل", 
+        "رقم التليفون", 
+        "نوع المنشأة", 
+        "الملاحظات العامة للعميل",
+        "نوع الإجراء", 
+        "النتيجة / سبب التجاهل", 
+        "ملاحظات المندوب التفصيلية", 
+        "تاريخ المتابعة القادمة",
+        "المبيعات"
+    ]
     ws2.append(headers2)
     
     for col_idx in range(1, len(headers2) + 1):
@@ -376,19 +395,22 @@ def export_rep_activity_excel(
         
     for item in events:
         ws2.append([
+            item["lead_id"],
             item["rep"],
             item["date"],
             item["lead_name"],
             item["lead_phone"],
             item["facility_type"],
+            item["lead_notes"],
             item["action_type"],
             item["outcome"],
-            item["sales_amount"],
-            item["notes"]
+            item["rep_notes"],
+            item["followup"],
+            item["sales_amount"]
         ])
         
     for row in range(2, ws2.max_row + 1):
-        action_type = ws2.cell(row=row, column=6).value
+        action_type = ws2.cell(row=row, column=8).value
         row_fill = None
         if action_type == "تجاهل":
             row_fill = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")
@@ -399,9 +421,9 @@ def export_rep_activity_excel(
             cell.border = thin_border
             if row_fill:
                 cell.fill = row_fill
-            if col in [1, 2, 4, 6]:
+            if col in [1, 2, 3, 5, 8, 11]:
                 cell.alignment = Alignment(horizontal="center")
-            elif col == 8:
+            elif col == 12:
                 cell.alignment = Alignment(horizontal="right")
                 cell.number_format = '$#,##0.00'
             else:
