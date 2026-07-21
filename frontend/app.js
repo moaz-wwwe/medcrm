@@ -716,6 +716,42 @@ window.exportAdminLeadsToCsv = function() {
     document.body.removeChild(link);
 }
 
+// Download Rep Activity Excel Report (Admin)
+window.downloadRepActivityExcel = async function() {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE}/api/reports/rep-activity/excel`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (res.status === 401) {
+            localStorage.clear();
+            window.location.href = "index.html";
+            return;
+        }
+        
+        if (!res.ok) {
+            showToast("فشل تحميل التقرير", "error");
+            return;
+        }
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rep_activity_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        showToast("تم تحميل تقرير النشاط بنجاح!", "success");
+    } catch (err) {
+        showToast("خطأ في الاتصال بالخادم", "error");
+    }
+}
+
 // Clear Pending Leads
 window.clearPendingLeads = async function() {
     if (!confirm("هل أنت متأكد من مسح جميع العملاء المعلقين (الذين لم يتم التواصل معهم)؟\nهذا الإجراء سيفرغ قائمة الانتظار للمندوبين، لكنه سيحافظ على كل العملاء والمكالمات والمبيعات التي تمت بالكامل.")) {

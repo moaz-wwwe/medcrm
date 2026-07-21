@@ -229,6 +229,201 @@ def get_db_count(db: Session = Depends(get_db)):
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/api/reports/rep-activity/excel")
+def export_rep_activity_excel(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin),
+):
+    from fastapi.responses import StreamingResponse
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    # 1. Fetch all Call Logs
+    logs = db.query(models.CallLog).join(models.Lead).all()
+    # 2. Fetch all Ignored Leads
+    ignored_leads = db.query(models.Lead).filter(models.Lead.is_ignored == True).all()
+
+    # 3. Build detailed activity events list
+    events = []
+    
+    # Process call logs
+    for log in logs:
+        lead = log.lead
+        rep_username = "N/A"
+        if lead and lead.assigned_rep:
+            rep_username = lead.assigned_rep.username
+            
+        events.append({
+            "rep": rep_username,
+            "date": log.timestamp.strftime("%Y-%m-%d") if log.timestamp else "N/A",
+            "lead_name": lead.name if lead else "N/A",
+            "lead_phone": lead.phone if lead else "N/A",
+            "facility_type": lead.facility_type if lead else "N/A",
+            "action_type": "اتصال",
+            "outcome": log.call_result or "N/A",
+            "sales_amount": float(log.sales_amount or 0.0),
+            "notes": log.notes or "N/A"
+        })
+        
+    # Process ignored leads
+    for lead in ignored_leads:
+        rep_username = lead.assigned_rep.username if lead.assigned_rep else "N/A"
+        events.append({
+            "rep": rep_username,
+            "date": lead.created_at.strftime("%Y-%m-%d") if lead.created_at else "N/A",
+            "lead_name": lead.name,
+            "lead_phone": lead.phone,
+            "facility_type": lead.facility_type,
+            "action_type": "تجاهل",
+            "outcome": lead.ignore_reason or "N/A",
+            "sales_amount": 0.0,
+            "notes": lead.notes or "N/A"
+        })
+
+    # 4. Generate daily summary data
+    summary_dict = {}
+    for ev in events:
+        key = (ev["rep"], ev["date"])
+        if key not in summary_dict:
+            summary_dict[key] = {"calls": 0, "ignored": 0, "sales": 0.0}
+        
+        if ev["action_type"] == "اتصال":
+            summary_dict[key]["calls"] += 1
+            summary_dict[key]["sales"] += ev["sales_amount"]
+        elif ev["action_type"] == "تجاهل":
+            summary_dict[key]["ignored"] += 1
+
+    # Convert to list
+    summary_list = []
+    for (rep, date), metrics in summary_dict.items():
+        summary_list.append({
+            "rep": rep,
+            "date": date,
+            "calls": metrics["calls"],
+            "ignored": metrics["ignored"],
+            "sales": metrics["sales"]
+        })
+    # Sort
+    summary_list.sort(key=lambda x: (x["date"], x["rep"]), reverse=True)
+    events.sort(key=lambda x: x["date"], reverse=True)
+
+    # 5. Create Excel Workbook using openpyxl
+    wb = openpyxl.Workbook()
+    
+    font_family = "Segoe UI"
+    header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+    header_font = Font(name=font_family, size=11, bold=True, color="FFFFFF")
+    data_font = Font(name=font_family, size=10)
+    
+    thin_border = Border(
+        left=Side(style='thin', color='BFBFBF'),
+        right=Side(style='thin', color='BFBFBF'),
+        top=Side(style='thin', color='BFBFBF'),
+        bottom=Side(style='thin', color='BFBFBF')
+    )
+    
+    # Sheet 1: الملخص اليومي
+    ws1 = wb.active
+    ws1.title = "الملخص اليومي"
+    ws1.views.sheetView[0].showGridLines = True
+    
+    headers1 = ["المندوب", "التاريخ", "عدد الاتصالات", "عدد المتجاهلين", "إجمالي المبيعات"]
+    ws1.append(headers1)
+    
+    for col_idx in range(1, len(headers1) + 1):
+        cell = ws1.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+    
+    for item in summary_list:
+        ws1.append([item["rep"], item["date"], item["calls"], item["ignored"], item["sales"]])
+        
+    for row in range(2, ws1.max_row + 1):
+        for col in range(1, len(headers1) + 1):
+            cell = ws1.cell(row=row, column=col)
+            cell.font = data_font
+            cell.border = thin_border
+            if col in [1, 2]:
+                cell.alignment = Alignment(horizontal="center")
+            elif col in [3, 4]:
+                cell.alignment = Alignment(horizontal="right")
+                cell.number_format = '#,##0'
+            elif col == 5:
+                cell.alignment = Alignment(horizontal="right")
+                cell.number_format = '$#,##0.00'
+
+    for col in ws1.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws1.column_dimensions[col_letter].width = max(max_len + 3, 12)
+
+    # Sheet 2: سجل النشاط التفصيلي
+    ws2 = wb.create_sheet(title="سجل النشاط التفصيلي")
+    ws2.views.sheetView[0].showGridLines = True
+    
+    headers2 = ["المندوب", "التاريخ", "اسم العميل", "رقم التليفون", "نوع المنشأة", "نوع الإجراء", "النتيجة / سبب التجاهل", "المبيعات", "ملاحظات"]
+    ws2.append(headers2)
+    
+    for col_idx in range(1, len(headers2) + 1):
+        cell = ws2.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+        
+    for item in events:
+        ws2.append([
+            item["rep"],
+            item["date"],
+            item["lead_name"],
+            item["lead_phone"],
+            item["facility_type"],
+            item["action_type"],
+            item["outcome"],
+            item["sales_amount"],
+            item["notes"]
+        ])
+        
+    for row in range(2, ws2.max_row + 1):
+        action_type = ws2.cell(row=row, column=6).value
+        row_fill = None
+        if action_type == "تجاهل":
+            row_fill = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")
+            
+        for col in range(1, len(headers2) + 1):
+            cell = ws2.cell(row=row, column=col)
+            cell.font = data_font
+            cell.border = thin_border
+            if row_fill:
+                cell.fill = row_fill
+            if col in [1, 2, 4, 6]:
+                cell.alignment = Alignment(horizontal="center")
+            elif col == 8:
+                cell.alignment = Alignment(horizontal="right")
+                cell.number_format = '$#,##0.00'
+            else:
+                cell.alignment = Alignment(horizontal="left")
+
+    for col in ws2.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws2.column_dimensions[col_letter].width = max(max_len + 3, 14)
+
+    file_stream = io.BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+    
+    filename = f"rep_activity_report_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    
+    return StreamingResponse(
+        file_stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 @app.get("/auth/me", response_model=schemas.UserOut)
 def read_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
