@@ -837,19 +837,8 @@ def update_lead(
 
     # If call_result is provided, we edit/create the latest call log
     if payload.call_result is not None:
-        # Find latest call log
-        latest_log = db.query(models.CallLog).filter(models.CallLog.lead_id == lead_id).order_by(models.CallLog.timestamp.desc()).first()
-        if latest_log:
-            # Update existing log
-            latest_log.call_result = payload.call_result
-            if payload.sales_amount is not None:
-                latest_log.sales_amount = payload.sales_amount
-            if payload.call_notes is not None:
-                latest_log.notes = payload.call_notes
-            if payload.next_followup is not None:
-                lead.followup_date = payload.next_followup
-        else:
-            # Create a new log
+        if payload.new_log == True:
+            # Force create a new log
             new_log = models.CallLog(
                 lead_id=lead_id,
                 call_result=payload.call_result,
@@ -859,6 +848,29 @@ def update_lead(
             db.add(new_log)
             if payload.next_followup is not None:
                 lead.followup_date = payload.next_followup
+        else:
+            # Find latest call log to update
+            latest_log = db.query(models.CallLog).filter(models.CallLog.lead_id == lead_id).order_by(models.CallLog.timestamp.desc()).first()
+            if latest_log:
+                # Update existing log
+                latest_log.call_result = payload.call_result
+                if payload.sales_amount is not None:
+                    latest_log.sales_amount = payload.sales_amount
+                if payload.call_notes is not None:
+                    latest_log.notes = payload.call_notes
+                if payload.next_followup is not None:
+                    lead.followup_date = payload.next_followup
+            else:
+                # Create a new log if none exists
+                new_log = models.CallLog(
+                    lead_id=lead_id,
+                    call_result=payload.call_result,
+                    sales_amount=payload.sales_amount or 0.0,
+                    notes=payload.call_notes or ""
+                )
+                db.add(new_log)
+                if payload.next_followup is not None:
+                    lead.followup_date = payload.next_followup
 
     db.commit()
     db.refresh(lead)

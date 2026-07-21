@@ -256,6 +256,14 @@ async function fetchLeads() {
         data.forEach(lead => {
             const card = document.createElement("div");
             card.className = "lead-card glass-panel";
+            
+            const historyBubble = lead.latest_call_log ? `
+                <div style="font-size:0.8rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 6px 10px; margin-top: 8px; margin-bottom: 8px; color: var(--text-main); text-align: right;" dir="rtl">
+                    <strong>آخر مكالمة:</strong> ${new Date(lead.latest_call_log.timestamp).toLocaleString('ar-EG')} 
+                    <br>
+                    <strong>النتيجة:</strong> ${lead.latest_call_log.call_result}
+                </div>` : '';
+
             card.innerHTML = `
                 <div class="lead-card-header">
                     <div>
@@ -265,13 +273,15 @@ async function fetchLeads() {
                             <span>Rep: ${lead.assigned_rep_username || 'N/A'}</span>
                         </div>
                     </div>
-                    <div style="display:flex; gap:5px; align-items:center;">
+                    <div style="display:flex; gap:5px; align-items:center; flex-wrap: wrap;">
                         <button onclick="prepareLogActivity(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">
                             ${lead.latest_call_log ? 'تعديل النتيجة' : 'تسجيل النتيجة'}
                         </button>
+                        ${lead.latest_call_log ? `<button onclick="prepareRecall(${lead.id})" class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem; background-color: var(--accent-green); border: none;">إعادة اتصال 📞</button>` : ''}
                         ${!lead.latest_call_log ? `<button onclick="ignoreLead(${lead.id})" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem; background-color:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2);">تخطي 🚫</button>` : ''}
                     </div>
                 </div>
+                ${historyBubble}
                 <p style="font-size:0.875rem; margin-bottom:0;"><strong>Phone:</strong> ${lead.phone}</p>
                 <p style="font-size:0.875rem;"><strong>Notes:</strong> ${lead.notes || 'No notes'}</p>
                 <div class="lead-actions">
@@ -453,6 +463,7 @@ window.showLeadEditFields = function() {
 // Log/Edit Activity Logic
 window.prepareLogActivity = async function(leadId) {
     document.getElementById("callLeadId").value = leadId;
+    document.getElementById("callLogIsNew").value = "false"; // Editing existing log
     
     // Reset display fields
     document.getElementById("dispLeadName").innerText = "";
@@ -515,11 +526,63 @@ window.prepareLogActivity = async function(leadId) {
     openModal('callLogModal');
 }
 
+// Prepare Recall/Followup Logic (New Log)
+window.prepareRecall = async function(leadId) {
+    document.getElementById("callLeadId").value = leadId;
+    document.getElementById("callLogIsNew").value = "true"; // Creating a new log!
+    
+    // Reset display fields
+    document.getElementById("dispLeadName").innerText = "";
+    document.getElementById("dispLeadPhone").innerText = "";
+    document.getElementById("dispLeadFacility").innerText = "";
+    document.getElementById("dispLeadNotes").innerText = "";
+    
+    // Reset modal fields first
+    document.getElementById("callLeadName").value = "";
+    document.getElementById("callLeadPhone").value = "";
+    document.getElementById("callLeadFacility").value = "";
+    document.getElementById("callLeadNotes").value = "";
+    document.getElementById("callResult").value = "";
+    document.getElementById("callSales").value = "";
+    document.getElementById("callNotes").value = "";
+    document.getElementById("callNextFollowup").value = "";
+    document.getElementById("callSalesGroup").style.display = "none";
+    document.getElementById("callFollowupGroup").style.display = "none";
+    
+    // Set to display mode by default
+    document.getElementById("leadInfoDisplay").style.display = "block";
+    document.getElementById("leadEditFields").style.display = "none";
+
+    try {
+        const res = await fetch(`${API_BASE}/leads/${leadId}`, { headers: getAuthHeaders() });
+        if (res.ok) {
+            const lead = await res.json();
+            
+            // Populate display fields
+            document.getElementById("dispLeadName").innerText = lead.name || "";
+            document.getElementById("dispLeadPhone").innerText = lead.phone || "";
+            document.getElementById("dispLeadFacility").innerText = lead.facility_type || "";
+            document.getElementById("dispLeadNotes").innerText = lead.notes || "لا توجد ملاحظات";
+
+            // Populate lead details (inputs)
+            document.getElementById("callLeadName").value = lead.name || "";
+            document.getElementById("callLeadPhone").value = lead.phone || "";
+            document.getElementById("callLeadFacility").value = lead.facility_type || "";
+            document.getElementById("callLeadNotes").value = lead.notes || "";
+        }
+    } catch (err) {
+        console.error("Failed to fetch lead for recall:", err);
+    }
+    
+    openModal('callLogModal');
+}
+
 const addLogForm = document.getElementById("callLogForm");
 if (addLogForm) {
     addLogForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const leadId = parseInt(document.getElementById("callLeadId").value);
+        const isNewLog = document.getElementById("callLogIsNew").value === "true";
         
         const payload = {
             name: document.getElementById("callLeadName").value.trim(),
@@ -529,7 +592,8 @@ if (addLogForm) {
             call_result: document.getElementById("callResult").value,
             sales_amount: parseFloat(document.getElementById("callSales").value) || 0.0,
             call_notes: document.getElementById("callNotes").value.trim(),
-            next_followup: document.getElementById("callNextFollowup")?.value ? document.getElementById("callNextFollowup").value + "T00:00:00Z" : null
+            next_followup: document.getElementById("callNextFollowup")?.value ? document.getElementById("callNextFollowup").value + "T00:00:00Z" : null,
+            new_log: isNewLog
         };
 
         try {

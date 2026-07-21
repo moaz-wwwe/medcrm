@@ -147,6 +147,7 @@ class LeadUpdate(BaseModel):
     is_ignored: Optional[bool] = None
     ignore_reason: Optional[str] = None
     assigned_to: Optional[int] = None
+    new_log: Optional[bool] = False
 
     @field_validator("phone")
     @classmethod
