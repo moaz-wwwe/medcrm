@@ -294,7 +294,7 @@ def export_rep_activity_excel(
         if key not in summary_dict:
             summary_dict[key] = {"calls": 0, "ignored": 0, "sales": 0.0}
         
-        if ev["action_type"] == "اتصال":
+        if ev["action_type"] == "مكالمة":
             summary_dict[key]["calls"] += 1
             summary_dict[key]["sales"] += ev["sales_amount"]
         elif ev["action_type"] == "تجاهل":
